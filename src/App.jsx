@@ -209,36 +209,34 @@ function App() {
 
   return (
     <div className="wrap">
-      <div className="auth-bar">
-        {isEditor ? (
-          <button type="button" className="auth-chip" onClick={handleLogout}>🔓 Signed in · Sign out</button>
-        ) : showLogin ? (
-          <form className="login-box" onSubmit={handleLogin}>
-            <input
-              type="password"
-              placeholder="Password"
-              aria-label="Password"
-              autoFocus
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <button type="submit" className="auth-chip primary" disabled={signingIn}>{signingIn ? '…' : 'Enter'}</button>
-            <button type="button" className="auth-chip" onClick={() => { setShowLogin(false); setAuthError('') }}>Cancel</button>
-            {authError && <span className="auth-error">{authError}</span>}
-          </form>
-        ) : (
-          <button type="button" className="auth-chip" onClick={() => setShowLogin(true)}>🔒 Sign in</button>
-        )}
+      <div className="header-bar">
+        <img src="/logoek.png" alt="Sithira Madam — Live Your Own Palace" className="brand-logo" />
+        <div className="auth-bar">
+          {isEditor ? (
+            <button type="button" className="auth-chip" onClick={handleLogout}>🔓 Signed in · Sign out</button>
+          ) : showLogin ? (
+            <form className="login-box" onSubmit={handleLogin}>
+              <input
+                type="password"
+                placeholder="Password"
+                aria-label="Password"
+                autoFocus
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button type="submit" className="auth-chip primary" disabled={signingIn}>{signingIn ? '…' : 'Enter'}</button>
+              <button type="button" className="auth-chip" onClick={() => { setShowLogin(false); setAuthError('') }}>Cancel</button>
+              {authError && <span className="auth-error">{authError}</span>}
+            </form>
+          ) : (
+            <button type="button" className="auth-chip" onClick={() => setShowLogin(true)}>🔒 Sign in</button>
+          )}
+        </div>
       </div>
 
       {syncError && (
         <div className="sync-banner">
           Couldn't reach the database — check your Firestore setup. Changes made now may not be saved.
-        </div>
-      )}
-      {!isEditor && rows.length === 0 && (
-        <div className="sync-banner info">
-          No entries yet — sign in above to add the first one.
         </div>
       )}
       <div className="scoreboard">
