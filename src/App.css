@@ -109,11 +109,11 @@ td input:disabled, .check:disabled { opacity: 0.55; cursor: not-allowed; }
   background: transparent;
   color: var(--accent);
   font-family: var(--body);
-  font-weight: 600;
-  font-size: 0.95rem;
+  font-weight: 700;
+  font-size: 1.3rem;
   padding: 0.1rem 0 0.35rem;
   margin-bottom: 0.6rem;
-  width: 220px;
+  width: 280px;
   max-width: 100%;
 }
 .name-field::placeholder { color: var(--ink-dim); font-weight: 500; }

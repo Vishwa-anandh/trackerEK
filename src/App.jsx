@@ -193,7 +193,7 @@ function App() {
   }
 
   function runExport(fn) {
-    const title = name ? `${name} — Scorecard` : 'Scorecard'
+    const title = name ? `${name} — Ryla 61.0 Tracker` : 'Ryla 61.0 Tracker'
     const prefix = (name ? `${name}-scorecard` : 'scorecard').toLowerCase().replace(/\s+/g, '-')
     fn(rows, total, prefix, title)
     if (exportMenuRef.current) exportMenuRef.current.open = false
@@ -241,7 +241,7 @@ function App() {
       )}
       <div className="scoreboard">
         <div className="title-block">
-          <h1>Scorecard</h1>
+          <h1>Ryla 61.0 Tracker</h1>
           <input
             className="name-field"
             type="text"
