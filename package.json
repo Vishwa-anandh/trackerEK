@@ -16,7 +16,8 @@
     "jspdf-autotable": "^5.0.8",
     "react": "^19.2.7",
     "react-datepicker": "^9.1.0",
-    "react-dom": "^19.2.7"
+    "react-dom": "^19.2.7",
+    "react-quill-new": "^3.8.3"
   },
   "devDependencies": {
     "@types/react": "^19.2.17",

@@ -5,7 +5,8 @@ import ConfirmModal from './ConfirmModal'
 import { db } from './firebase'
 import './CustomSheets.css'
 import DatePicker from "react-datepicker"
-
+import ReactQuill from 'react-quill-new'
+import 'react-quill-new/dist/quill.snow.css'
 function parseDateStr(ds) {
   if (!ds) return null
   const [y, m, d] = ds.split('-')
@@ -29,6 +30,10 @@ function num(v) {
 function total(row) {
   return num(row.score) + num(row.bonus)
 }
+
+const quillModules = {
+  toolbar: false
+};
 
 export default function CustomSheets({ isEditor, currentView, setCurrentView, authElement }) {
   const [data, setData] = useState({ sheets: [], activeSheetId: null })
@@ -308,13 +313,14 @@ export default function CustomSheets({ isEditor, currentView, setCurrentView, au
                 placeholder="Sheet Title"
                 disabled={!isEditor}
               />
-              <input
-                type="text"
-                className="cs-desc-input"
-                value={activeSheet.description}
-                onChange={(e) => updateActiveSheet(s => ({ ...s, description: e.target.value }))}
+              <ReactQuill
+                theme="snow"
+                className="cs-desc-quill"
+                value={activeSheet.description || ''}
+                onChange={(content) => updateActiveSheet(s => ({ ...s, description: content }))}
                 placeholder="Description..."
-                disabled={!isEditor}
+                readOnly={!isEditor}
+                modules={quillModules}
               />
             </div>
             <div className="grand-tile">
