@@ -250,6 +250,10 @@
   min-height: 24px;
   line-height: 1.5;
 }
+.cs-desc-quill .ql-editor p,
+.cs-desc-quill .ql-editor li {
+  max-width: none !important;
+}
 .cs-desc-quill .ql-editor.ql-blank::before {
   left: 0;
   font-style: normal;

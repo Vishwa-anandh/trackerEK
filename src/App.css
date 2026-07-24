@@ -119,7 +119,7 @@ td input:disabled, .check:disabled { opacity: 0.55; cursor: not-allowed; }
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 1.5rem;
-  align-items: stretch;
+  align-items: flex-start;
   margin-bottom: 1.4rem;
 }
 .title-block h1 {
