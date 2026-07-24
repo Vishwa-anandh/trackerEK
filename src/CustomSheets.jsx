@@ -1,17 +1,31 @@
 import { useEffect, useState, useRef } from 'react'
 import { doc, onSnapshot, setDoc } from 'firebase/firestore'
-import { exportGenericCsv, exportGenericPdf, exportGenericDoc } from './export'
+import { exportCsv, exportPdf, exportDoc } from './export'
 import ConfirmModal from './ConfirmModal'
 import { db } from './firebase'
 import './CustomSheets.css'
 
 const sheetsRef = doc(db, 'trackers', 'custom_sheets')
 
-export default function CustomSheets({ isEditor }) {
+function num(v) {
+  const n = parseFloat(v)
+  return Number.isNaN(n) ? 0 : n
+}
+
+function total(row) {
+  return num(row.score) + num(row.bonus)
+}
+
+export default function CustomSheets({ isEditor, currentView, setCurrentView }) {
   const [data, setData] = useState({ sheets: [], activeSheetId: null })
   const [loading, setLoading] = useState(true)
   const [syncError, setSyncError] = useState(false)
   const [modalConfig, setModalConfig] = useState(null)
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('all')
+  const [bump, setBump] = useState(false)
+  const prevGrandTotal = useRef(null)
+  const bumpTimer = useRef(null)
   const hydrated = useRef(false)
   const saveTimer = useRef(null)
   const exportMenuRef = useRef(null)
@@ -34,8 +48,7 @@ export default function CustomSheets({ isEditor }) {
                 id: initialSheetId,
                 title: 'New Sheet',
                 description: 'Double click to edit description...',
-                columns: [{ id: 'col_' + Date.now(), name: 'Column 1' }],
-                rows: [{ id: 'row_' + Date.now() }]
+                rows: [{ id: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }]
               }
             ],
             activeSheetId: initialSheetId
@@ -67,6 +80,16 @@ export default function CustomSheets({ isEditor }) {
     return () => clearTimeout(saveTimer.current)
   }, [data, isEditor])
 
+  useEffect(() => {
+    function closeOnOutsideClick(e) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target)) {
+        exportMenuRef.current.open = false
+      }
+    }
+    document.addEventListener('click', closeOnOutsideClick)
+    return () => document.removeEventListener('click', closeOnOutsideClick)
+  }, [])
+
   function updateData(updater) {
     if (!isEditor) return
     setData((prev) => updater(prev))
@@ -82,8 +105,7 @@ export default function CustomSheets({ isEditor }) {
           id,
           title: 'Untitled Sheet',
           description: '',
-          columns: [{ id: 'col_' + Date.now(), name: 'Column 1' }],
-          rows: [{ id: 'row_' + Date.now() }]
+          rows: [{ id: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }]
         }
       ],
       activeSheetId: id
@@ -92,6 +114,29 @@ export default function CustomSheets({ isEditor }) {
 
   const activeSheetIndex = data.sheets.findIndex(s => s.id === data.activeSheetId)
   const activeSheet = data.sheets[activeSheetIndex]
+
+  const scoreSum = activeSheet ? activeSheet.rows.reduce((sum, row) => sum + num(row.score), 0) : 0
+  const bonusSum = activeSheet ? activeSheet.rows.reduce((sum, row) => sum + num(row.bonus), 0) : 0
+  const grandTotal = activeSheet ? activeSheet.rows.reduce((sum, row) => sum + total(row), 0) : 0
+  const submittedCount = activeSheet ? activeSheet.rows.filter(r => r.submitted).length : 0
+  const rate = activeSheet && activeSheet.rows.length ? Math.round((submittedCount / activeSheet.rows.length) * 100) : 0
+
+  const visibleRows = activeSheet ? activeSheet.rows.filter((row) => {
+    if (filter === 'submitted' && !row.submitted) return false
+    if (filter === 'pending' && row.submitted) return false
+    if (search && !row.activity.toLowerCase().includes(search.trim().toLowerCase())) return false
+    return true
+  }) : []
+
+  useEffect(() => {
+    if (prevGrandTotal.current !== null && prevGrandTotal.current !== grandTotal) {
+      setBump(true)
+      clearTimeout(bumpTimer.current)
+      bumpTimer.current = setTimeout(() => setBump(false), 180)
+    }
+    prevGrandTotal.current = grandTotal
+    return () => clearTimeout(bumpTimer.current)
+  }, [grandTotal])
 
   function updateActiveSheet(updater) {
     updateData((prev) => {
@@ -103,32 +148,14 @@ export default function CustomSheets({ isEditor }) {
     })
   }
 
-  function addColumn() {
-    updateActiveSheet((sheet) => ({
-      ...sheet,
-      columns: [...sheet.columns, { id: 'col_' + Date.now(), name: 'New Column' }]
-    }))
-  }
-
-  function updateColumnName(colId, name) {
-    updateActiveSheet((sheet) => ({
-      ...sheet,
-      columns: sheet.columns.map(c => c.id === colId ? { ...c, name } : c)
-    }))
-  }
-
   function promptRemoveSheet(sheetId) {
     setModalConfig({ type: 'sheet', targetId: sheetId, title: 'Delete Sheet', message: 'Are you sure you want to delete this sheet?' })
-  }
-
-  function promptRemoveColumn(colId) {
-    setModalConfig({ type: 'column', targetId: colId, title: 'Delete Column', message: 'Are you sure you want to delete this column and all its data?' })
   }
 
   function addRow() {
     updateActiveSheet((sheet) => ({
       ...sheet,
-      rows: [...sheet.rows, { id: 'row_' + Date.now() }]
+      rows: [...sheet.rows, { id: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }]
     }))
   }
 
@@ -136,17 +163,26 @@ export default function CustomSheets({ isEditor }) {
     setModalConfig({ type: 'row', targetId: rowId, title: 'Delete Row', message: 'Are you sure you want to delete this row?' })
   }
 
+  function updateRow(rowId, field, value) {
+    updateActiveSheet((sheet) => ({
+      ...sheet,
+      rows: sheet.rows.map(r => r.id === rowId ? { ...r, [field]: value } : r)
+    }))
+  }
+
+  function toggleSubmitted(rowId) {
+    updateActiveSheet((sheet) => ({
+      ...sheet,
+      rows: sheet.rows.map(r => r.id === rowId ? { ...r, submitted: !r.submitted } : r)
+    }))
+  }
+
   function runExport(fn) {
     const sheet = data.sheets.find(s => s.id === data.activeSheetId)
     if (!sheet) return
     const title = sheet.title || 'Untitled Sheet'
     const prefix = title.toLowerCase().replace(/\s+/g, '-') || 'custom-sheet'
-    const headers = ['#', ...sheet.columns.map(c => c.name)]
-    const records = sheet.rows.map((r, i) => [
-      String(i + 1),
-      ...sheet.columns.map(c => r[c.id] || '')
-    ])
-    fn(headers, records, prefix, title)
+    fn(sheet.rows, total, prefix, title)
     if (exportMenuRef.current) exportMenuRef.current.open = false
   }
 
@@ -162,11 +198,6 @@ export default function CustomSheets({ isEditor }) {
           activeSheetId: prev.activeSheetId === targetId ? (newSheets[0]?.id || null) : prev.activeSheetId
         }
       })
-    } else if (type === 'column') {
-      updateActiveSheet((sheet) => ({
-        ...sheet,
-        columns: sheet.columns.filter(c => c.id !== targetId),
-      }))
     } else if (type === 'row') {
       updateActiveSheet((sheet) => ({
         ...sheet,
@@ -176,54 +207,63 @@ export default function CustomSheets({ isEditor }) {
     setModalConfig(null)
   }
 
-  function updateCell(rowId, colId, value) {
-    updateActiveSheet((sheet) => ({
-      ...sheet,
-      rows: sheet.rows.map(r => r.id === rowId ? { ...r, [colId]: value } : r)
-    }))
-  }
-
   if (loading) {
     return <div className="loading-state">Connecting to Custom Sheets…</div>
   }
 
   return (
-    <div className="custom-sheets-wrap">
-      {syncError && (
-        <div className="sync-banner">
-          Couldn't reach the database — check your Firestore setup. Changes made now may not be saved.
-        </div>
-      )}
-
-      <div className="cs-tabs">
-        {data.sheets.map((sheet) => (
-          <div key={sheet.id} className={'cs-tab-group ' + (sheet.id === data.activeSheetId ? 'active' : '')}>
-            <button
-              className="cs-tab"
-              onClick={() => updateData(prev => ({ ...prev, activeSheetId: sheet.id }))}
-            >
-              {sheet.title || 'Untitled'}
-            </button>
-            {isEditor && (
-              <button 
-                className="cs-del-sheet" 
-                onClick={() => promptRemoveSheet(sheet.id)}
-                title="Delete sheet"
+    <>
+      <nav className="top-nav">
+        <button 
+          className={'nav-btn ' + (currentView === 'home' ? 'active' : '')} 
+          onClick={() => setCurrentView('home')}
+        >
+          Tracker Home
+        </button>
+        <div className="cs-tabs-header">
+          {data.sheets.map((sheet) => (
+            <div key={sheet.id} className={'cs-tab-group ' + (sheet.id === data.activeSheetId && currentView !== 'home' ? 'active' : '')}>
+              <button
+                className="cs-tab"
+                onClick={() => {
+                  updateData(prev => ({ ...prev, activeSheetId: sheet.id }))
+                  setCurrentView('custom')
+                }}
               >
-                ×
+                {sheet.title || 'Untitled'}
               </button>
-            )}
-          </div>
-        ))}
-        {isEditor && (
-          <button className="cs-add-sheet" onClick={addSheet}>+ New Sheet</button>
-        )}
-      </div>
+              {isEditor && (
+                <button 
+                  className="cs-del-sheet" 
+                  onClick={() => promptRemoveSheet(sheet.id)}
+                  title="Delete sheet"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+          {isEditor && (
+            <button className="cs-add-sheet" onClick={() => {
+              addSheet()
+              setCurrentView('custom')
+            }}>+ New Sheet</button>
+          )}
+        </div>
+      </nav>
+
+      {currentView !== 'home' && (
+        <div className="custom-sheets-wrap">
+          {syncError && (
+            <div className="sync-banner">
+              Couldn't reach the database — check your Firestore setup. Changes made now may not be saved.
+            </div>
+          )}
 
       {activeSheet && (
         <div className="cs-active-sheet">
-          <div className="cs-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <div style={{ flex: 1, paddingRight: '1rem' }}>
+          <div className="cs-header scoreboard">
+            <div className="title-block" style={{ flex: 1, paddingRight: '1rem' }}>
               <input
                 type="text"
                 className="cs-title-input"
@@ -241,91 +281,199 @@ export default function CustomSheets({ isEditor }) {
                 disabled={!isEditor}
               />
             </div>
-            <div>
+            <div className="grand-tile">
+              <span className="label">Grand total</span>
+              <span className={'num' + (bump ? ' bump' : '')}>{grandTotal}</span>
+            </div>
+          </div>
+
+          <div className="mini-stats">
+            <div className="mini-stat">Entries <b>{activeSheet.rows.length}</b></div>
+            <div className="mini-stat">Submitted <b>{submittedCount}/{activeSheet.rows.length}</b></div>
+            <div className="mini-stat">
+              Rate <b>{rate}%</b>
+              <span className="rate-track"><span className="rate-fill" style={{ width: rate + '%' }} /></span>
+            </div>
+          </div>
+
+          <div className="toolbar">
+            <div className="search-box">
+              <input
+                type="text"
+                placeholder="Search activity…"
+                aria-label="Search activity"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <div className="toolbar-right">
+              <div className="filters" role="group" aria-label="Filter by submission status">
+                {['all', 'submitted', 'pending'].map((key) => (
+                  <button
+                    key={key}
+                    className="filter-chip"
+                    aria-pressed={filter === key}
+                    onClick={() => setFilter(key)}
+                  >
+                    {key === 'all' ? 'All' : key === 'submitted' ? 'Submitted' : 'Pending'}
+                  </button>
+                ))}
+              </div>
               <details className="export-menu" ref={exportMenuRef}>
                 <summary className="export-trigger">Export ▾</summary>
                 <div className="export-list" role="menu">
-                  <button role="menuitem" onClick={() => runExport(exportGenericCsv)}>Excel (.csv)</button>
-                  <button role="menuitem" onClick={() => runExport(exportGenericPdf)}>PDF</button>
-                  <button role="menuitem" onClick={() => runExport(exportGenericDoc)}>Word (.doc)</button>
+                  <button role="menuitem" onClick={() => runExport(exportCsv)}>Excel (.csv)</button>
+                  <button role="menuitem" onClick={() => runExport(exportPdf)}>PDF</button>
+                  <button role="menuitem" onClick={() => runExport(exportDoc)}>Word (.doc)</button>
                 </div>
               </details>
             </div>
           </div>
 
           <div className="cs-table-container">
-            <table className="cs-table">
+            <table className="tracker-table cs-table-override">
               <thead>
                 <tr>
-                  <th style={{ width: '3rem' }}>#</th>
-                  {activeSheet.columns.map((col) => (
-                    <th key={col.id}>
-                      <div className="cs-col-header">
-                        <input 
-                          type="text" 
-                          className="cs-col-name-input"
-                          value={col.name}
-                          onChange={(e) => updateColumnName(col.id, e.target.value)}
-                          disabled={!isEditor}
-                        />
-                        {isEditor && (
-                          <button 
-                            className="cs-del-col" 
-                            title="Delete column" 
-                            onClick={() => promptRemoveColumn(col.id)}
-                          >
-                            ×
-                          </button>
-                        )}
-                      </div>
-                    </th>
-                  ))}
-                  {isEditor && (
-                    <th style={{ width: '8rem' }}>
-                      <button className="cs-add-col" onClick={addColumn}>+ Column</button>
-                    </th>
-                  )}
-                  {isEditor && <th style={{ width: '3rem' }}></th>}
+                  <th className="center" style={{ width: '2.5rem' }}>#</th>
+                  <th style={{ width: '9.5rem' }}>Date</th>
+                  <th>Activity</th>
+                  <th className="center" style={{ width: '5.5rem' }}>Submitted</th>
+                  <th style={{ width: '9.5rem' }}>Start Date</th>
+                  <th style={{ width: '9.5rem' }}>End Date</th>
+                  <th className="num" style={{ width: '5.5rem' }}>Score</th>
+                  <th className="num" style={{ width: '5.5rem' }}>Bonus</th>
+                  <th className="num" style={{ width: '5.5rem' }}>Total</th>
+                  <th>Remarks</th>
+                  <th style={{ width: '2rem' }} />
                 </tr>
               </thead>
               <tbody>
-                {activeSheet.rows.map((row, i) => (
-                  <tr key={row.id}>
-                    <td className="cs-sl center">{i + 1}</td>
-                    {activeSheet.columns.map((col) => (
-                      <td key={col.id}>
-                        <input
-                          type="text"
-                          value={row[col.id] || ''}
-                          onChange={(e) => updateCell(row.id, col.id, e.target.value)}
-                          disabled={!isEditor}
-                        />
-                      </td>
-                    ))}
-                    {isEditor && <td />}
-                    {isEditor && (
-                      <td>
-                        <button className="cs-del-row" title="Delete row" onClick={() => promptRemoveRow(row.id)}>✕</button>
-                      </td>
-                    )}
+                {visibleRows.map((row, i) => (
+                  <tr
+                    key={row.id}
+                    className={(row.submitted ? 'submitted' : 'pending')}
+                  >
+                    <td className="sl center" data-label="#">{activeSheet.rows.indexOf(row) + 1}</td>
+                    <td data-label="Date">
+                      <input
+                        type="date"
+                        value={row.date || ''}
+                        disabled={!isEditor}
+                        onChange={(e) => updateRow(row.id, 'date', e.target.value)}
+                      />
+                    </td>
+                    <td data-label="Activity">
+                      <input
+                        type="text"
+                        placeholder="Activity name"
+                        value={row.activity || ''}
+                        disabled={!isEditor}
+                        onChange={(e) => updateRow(row.id, 'activity', e.target.value)}
+                      />
+                    </td>
+                    <td className="center" data-label="Submitted">
+                      <button
+                        type="button"
+                        className={'check ' + (row.submitted ? 'yes' : 'no')}
+                        aria-pressed={row.submitted}
+                        aria-label="Toggle submitted"
+                        disabled={!isEditor}
+                        onClick={() => toggleSubmitted(row.id)}
+                      >
+                        {row.submitted ? '✓' : '✕'}
+                      </button>
+                    </td>
+                    <td data-label="Start Date">
+                      <input
+                        type="date"
+                        value={row.startDate || ''}
+                        disabled={!isEditor}
+                        onChange={(e) => updateRow(row.id, 'startDate', e.target.value)}
+                      />
+                    </td>
+                    <td data-label="End Date">
+                      <input
+                        type="date"
+                        value={row.endDate || ''}
+                        disabled={!isEditor}
+                        onChange={(e) => updateRow(row.id, 'endDate', e.target.value)}
+                      />
+                    </td>
+                    <td className="num" data-label="Score">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        value={row.score ?? ''}
+                        disabled={!isEditor}
+                        onChange={(e) => updateRow(row.id, 'score', e.target.value)}
+                      />
+                    </td>
+                    <td className="num" data-label="Bonus">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min="0"
+                        value={row.bonus ?? ''}
+                        disabled={!isEditor}
+                        onChange={(e) => updateRow(row.id, 'bonus', e.target.value)}
+                      />
+                    </td>
+                    <td className="num total-cell" data-label="Total">{total(row)}</td>
+                    <td data-label="Remarks">
+                      <input
+                        type="text"
+                        placeholder="–"
+                        value={row.remarks || ''}
+                        disabled={!isEditor}
+                        onChange={(e) => updateRow(row.id, 'remarks', e.target.value)}
+                      />
+                    </td>
+                    <td className="row-actions" data-label="">
+                      {isEditor && (
+                        <button className="row-del" title="Delete entry" aria-label="Delete entry" onClick={() => promptRemoveRow(row.id)}>✕</button>
+                      )}
+                    </td>
                   </tr>
                 ))}
+                {isEditor && (
+                  <tr className="add-row">
+                    <td colSpan={11}>
+                      <button type="button" className="add-entry-btn" onClick={addRow}>+ Add entry</button>
+                    </td>
+                  </tr>
+                )}
               </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={6} className="foot-label" data-label="">Overall</td>
+                  <td className="num foot-total" data-label="Score">{scoreSum}</td>
+                  <td className="num foot-total" data-label="Bonus">{bonusSum}</td>
+                  <td className="num foot-total" data-label="Total">{grandTotal}</td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
             </table>
-            {isEditor && (
-              <button className="cs-add-row" onClick={addRow}>+ Add row</button>
+            {visibleRows.length === 0 && (
+              <div className="empty">
+                <strong>No entries match</strong>
+                <span>Try a different filter or search, or add a new activity above.</span>
+              </div>
             )}
           </div>
         </div>
       )}
 
-      <ConfirmModal 
-        isOpen={modalConfig !== null}
-        title={modalConfig?.title}
-        message={modalConfig?.message}
-        onConfirm={handleConfirm}
-        onCancel={() => setModalConfig(null)}
-      />
+      {modalConfig && (
+        <ConfirmModal
+          title={modalConfig.title}
+          message={modalConfig.message}
+          onConfirm={handleConfirm}
+          onCancel={() => setModalConfig(null)}
+        />
+      )}
     </div>
+    )}
+    </>
   )
 }

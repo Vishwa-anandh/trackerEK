@@ -219,24 +219,9 @@ function App() {
 
   return (
     <>
-      <nav className="top-nav">
-        <button 
-          className={'nav-btn ' + (currentView === 'home' ? 'active' : '')} 
-          onClick={() => setCurrentView('home')}
-        >
-          Tracker Home
-        </button>
-        <button 
-          className={'nav-btn ' + (currentView === 'custom' ? 'active' : '')} 
-          onClick={() => setCurrentView('custom')}
-        >
-          Custom Sheets
-        </button>
-      </nav>
+      <CustomSheets isEditor={isEditor} currentView={currentView} setCurrentView={setCurrentView} />
 
-      {currentView === 'custom' ? (
-        <CustomSheets isEditor={isEditor} />
-      ) : (
+      {currentView === 'home' && (
         <div className="wrap">
       <div className="header-bar">
         <img src="/logoek.png" alt="Sithira Madam — Live Your Own Palace" className="brand-logo" />
@@ -280,7 +265,7 @@ function App() {
             disabled={!isEditor}
             onChange={(e) => setName(e.target.value)}
           />
-          <p>Every activity, its score, bonus and running total in one ledger.</p>
+
         </div>
         <div className="grand-tile">
           <span className="label">Grand total</span>
