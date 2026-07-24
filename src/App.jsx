@@ -4,14 +4,16 @@ import { onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'firebas
 import { auth, db } from './firebase'
 import './App.css'
 import { exportCsv, exportDoc, exportPdf } from './export'
+import CustomSheets from './CustomSheets'
+import ConfirmModal from './ConfirmModal'
 
 const trackerRef = doc(db, 'trackers', 'main')
 const OWNER_EMAIL = import.meta.env.VITE_OWNER_EMAIL
 
 const seed = [
-  { id: 1, date: '2026-07-23', activity: 'Brand Poster', submitted: true, score: 50, bonus: 0, remarks: 'Best Script' },
-  { id: 2, date: '2026-07-24', activity: 'Chief Guest Intro', submitted: true, score: 30, bonus: 20, remarks: 'Presented on stage' },
-  { id: 3, date: '2026-07-24', activity: 'EKT Test', submitted: true, score: 15, bonus: 0, remarks: '' },
+  { id: 1, date: '2026-07-23', activity: 'Brand Poster', submitted: true, startDate: '', endDate: '', score: 50, bonus: 0, remarks: 'Best Script' },
+  { id: 2, date: '2026-07-24', activity: 'Chief Guest Intro', submitted: true, startDate: '', endDate: '', score: 30, bonus: 20, remarks: 'Presented on stage' },
+  { id: 3, date: '2026-07-24', activity: 'EKT Test', submitted: true, startDate: '', endDate: '', score: 15, bonus: 0, remarks: '' },
 ]
 
 function num(v) {
@@ -24,6 +26,7 @@ function total(row) {
 }
 
 function App() {
+  const [currentView, setCurrentView] = useState('home')
   const [rows, setRows] = useState([])
   const [name, setName] = useState('')
   const [loading, setLoading] = useState(true)
@@ -47,6 +50,7 @@ function App() {
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [signingIn, setSigningIn] = useState(false)
+  const [entryToDelete, setEntryToDelete] = useState(null)
   const isEditor = !!user
 
   useEffect(() => {
@@ -170,14 +174,20 @@ function App() {
     const id = nextIdRef.current++
     setRows((prev) => [
       ...prev,
-      { id, date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, score: 0, bonus: 0, remarks: '' },
+      { id, date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' },
     ])
     requestAnimationFrame(() => lastActivityRef.current?.focus())
   }
 
   function deleteRow(id) {
     if (!isEditor) return
-    if (!window.confirm('Delete this entry? This cannot be undone.')) return
+    setEntryToDelete(id)
+  }
+
+  function confirmDeleteRow() {
+    if (entryToDelete === null) return
+    const id = entryToDelete
+    setEntryToDelete(null)
     setFadingId(id)
     setTimeout(() => {
       setRows((prev) => prev.filter((r) => r.id !== id))
@@ -208,7 +218,26 @@ function App() {
   }
 
   return (
-    <div className="wrap">
+    <>
+      <nav className="top-nav">
+        <button 
+          className={'nav-btn ' + (currentView === 'home' ? 'active' : '')} 
+          onClick={() => setCurrentView('home')}
+        >
+          Tracker Home
+        </button>
+        <button 
+          className={'nav-btn ' + (currentView === 'custom' ? 'active' : '')} 
+          onClick={() => setCurrentView('custom')}
+        >
+          Custom Sheets
+        </button>
+      </nav>
+
+      {currentView === 'custom' ? (
+        <CustomSheets isEditor={isEditor} />
+      ) : (
+        <div className="wrap">
       <div className="header-bar">
         <img src="/logoek.png" alt="Sithira Madam — Live Your Own Palace" className="brand-logo" />
         <div className="auth-bar">
@@ -310,6 +339,8 @@ function App() {
               <th style={{ width: '9.5rem' }}>Date</th>
               <th>Activity</th>
               <th className="center" style={{ width: '5.5rem' }}>Submitted</th>
+              <th style={{ width: '9.5rem' }}>Start Date</th>
+              <th style={{ width: '9.5rem' }}>End Date</th>
               <th className="num" style={{ width: '5.5rem' }}>Score</th>
               <th className="num" style={{ width: '5.5rem' }}>Bonus</th>
               <th className="num" style={{ width: '5.5rem' }}>Total</th>
@@ -356,6 +387,22 @@ function App() {
                       {row.submitted ? '✓' : '✕'}
                     </button>
                   </td>
+                  <td data-label="Start Date">
+                    <input
+                      type="date"
+                      value={row.startDate || ''}
+                      disabled={!isEditor}
+                      onChange={(e) => updateRow(row.id, 'startDate', e.target.value)}
+                    />
+                  </td>
+                  <td data-label="End Date">
+                    <input
+                      type="date"
+                      value={row.endDate || ''}
+                      disabled={!isEditor}
+                      onChange={(e) => updateRow(row.id, 'endDate', e.target.value)}
+                    />
+                  </td>
                   <td className="num" data-label="Score">
                     <input
                       type="number"
@@ -397,7 +444,7 @@ function App() {
             })}
             {isEditor && (
               <tr className="add-row">
-                <td colSpan={9}>
+                <td colSpan={11}>
                   <button type="button" className="add-entry-btn" onClick={addRow}>+ Add entry</button>
                 </td>
               </tr>
@@ -405,7 +452,7 @@ function App() {
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={4} className="foot-label" data-label="">Overall</td>
+              <td colSpan={6} className="foot-label" data-label="">Overall</td>
               <td className="num foot-total" data-label="Score">{scoreSum}</td>
               <td className="num foot-total" data-label="Bonus">{bonusSum}</td>
               <td className="num foot-total" data-label="Total">{grandTotal}</td>
@@ -427,7 +474,17 @@ function App() {
           <span>Synced to your database</span>
         </span>
       </div>
-    </div>
+        </div>
+      )}
+
+      <ConfirmModal 
+        isOpen={entryToDelete !== null}
+        title="Delete Entry"
+        message="Are you sure you want to delete this entry? This cannot be undone."
+        onConfirm={confirmDeleteRow}
+        onCancel={() => setEntryToDelete(null)}
+      />
+    </>
   )
 }
 

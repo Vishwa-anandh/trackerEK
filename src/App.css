@@ -1,4 +1,40 @@
-.wrap { max-width: 1220px; margin: 0 auto; padding: 2.75rem 1.5rem 4rem; text-align: left; }
+.top-nav {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: 0.5rem 1rem;
+  display: flex;
+  gap: 1rem;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.nav-btn {
+  background: transparent;
+  border: none;
+  font-family: var(--body);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.nav-btn:hover {
+  background: var(--bg);
+}
+
+.nav-btn.active {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.wrap { width: 100%; padding: 2.75rem 2rem 4rem; text-align: left; box-sizing: border-box; }
 
 .loading-state {
   color: var(--ink-dim);
@@ -481,6 +517,7 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
       "date date"
       "activity activity"
       "submitted submitted"
+      "start-date end-date"
       "score bonus"
       "total total"
       "remarks remarks";
@@ -525,6 +562,8 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
   td[data-label="Date"] { grid-area: date; }
   td[data-label="Activity"] { grid-area: activity; }
   td[data-label="Submitted"] { grid-area: submitted; }
+  td[data-label="Start Date"] { grid-area: start-date; }
+  td[data-label="End Date"] { grid-area: end-date; }
   td[data-label="Score"] { grid-area: score; }
   td[data-label="Bonus"] { grid-area: bonus; }
   td[data-label="Total"] { grid-area: total; border-top: 1px dashed var(--line); padding-top: 0.5rem; margin-top: 0.1rem; }
@@ -560,6 +599,8 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
       "date"
       "activity"
       "submitted"
+      "start-date"
+      "end-date"
       "score"
       "bonus"
       "total"

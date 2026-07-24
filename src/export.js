@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
-const HEADERS = ['#', 'Date', 'Activity', 'Submitted', 'Score', 'Bonus', 'Total', 'Remarks']
+const HEADERS = ['#', 'Date', 'Activity', 'Submitted', 'Start Date', 'End Date', 'Score', 'Bonus', 'Total', 'Remarks']
 
 function toRecords(rows, total) {
   return rows.map((r, i) => [
@@ -9,6 +9,8 @@ function toRecords(rows, total) {
     r.date,
     r.activity,
     r.submitted ? 'Yes' : 'No',
+    r.startDate,
+    r.endDate,
     r.score,
     r.bonus,
     total(r),
@@ -72,5 +74,42 @@ ${bodyRows}
 </table>
 </body></html>`
   const blob = new Blob(['﻿', html], { type: 'application/msword' })
+  download(blob, `${filenamePrefix}.doc`)
+}
+export function exportGenericCsv(headers, records, filenamePrefix) {
+  const lines = [headers, ...records].map((r) => r.map(csvEscape).join(','))
+  const blob = new Blob(['\uFEFF' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' })
+  download(blob, `${filenamePrefix}.csv`)
+}
+
+export function exportGenericPdf(headers, records, filenamePrefix, title) {
+  const doc = new jsPDF()
+  doc.setFontSize(14)
+  doc.text(title, 14, 15)
+  autoTable(doc, {
+    startY: 21,
+    head: [headers],
+    body: records,
+    styles: { fontSize: 9 },
+    headStyles: { fillColor: [201, 122, 43] },
+  })
+  doc.save(`${filenamePrefix}.pdf`)
+}
+
+export function exportGenericDoc(headers, records, filenamePrefix, title) {
+  const bodyRows = records
+    .map((cols) => `<tr>${cols.map((c) => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`)
+    .join('')
+  const headRow = `<tr>${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join('')}</tr>`
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+<head><meta charset="utf-8"><title>${escapeHtml(title)}</title></head>
+<body>
+<h1 style="font-family:sans-serif;">${escapeHtml(title)}</h1>
+<table border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;font-family:sans-serif;font-size:13px;">
+${headRow}
+${bodyRows}
+</table>
+</body></html>`
+  const blob = new Blob(['\uFEFF', html], { type: 'application/msword' })
   download(blob, `${filenamePrefix}.doc`)
 }
