@@ -6,7 +6,22 @@ import './App.css'
 import { exportCsv, exportDoc, exportPdf } from './export'
 import CustomSheets from './CustomSheets'
 import ConfirmModal from './ConfirmModal'
+import DatePicker from "react-datepicker"
+import "react-datepicker/dist/react-datepicker.css"
+import "./DatePicker.css"
 
+function parseDateStr(ds) {
+  if (!ds) return null
+  const [y, m, d] = ds.split('-')
+  return new Date(y, m - 1, d)
+}
+function formatDateStr(d) {
+  if (!d) return ''
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dy = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dy}`
+}
 const trackerRef = doc(db, 'trackers', 'main')
 const OWNER_EMAIL = import.meta.env.VITE_OWNER_EMAIL
 
@@ -219,34 +234,37 @@ function App() {
 
   return (
     <>
-      <CustomSheets isEditor={isEditor} currentView={currentView} setCurrentView={setCurrentView} />
+      <CustomSheets 
+        isEditor={isEditor} 
+        currentView={currentView} 
+        setCurrentView={setCurrentView} 
+        authElement={
+          <div className="auth-bar">
+            {isEditor ? (
+              <button type="button" className="auth-chip" onClick={handleLogout}>🔓 Signed in · Sign out</button>
+            ) : showLogin ? (
+              <form className="login-box" onSubmit={handleLogin}>
+                <input
+                  type="password"
+                  placeholder="Password"
+                  aria-label="Password"
+                  autoFocus
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button type="submit" className="auth-chip primary" disabled={signingIn}>{signingIn ? '…' : 'Enter'}</button>
+                <button type="button" className="auth-chip" onClick={() => { setShowLogin(false); setAuthError('') }}>Cancel</button>
+                {authError && <span className="auth-error">{authError}</span>}
+              </form>
+            ) : (
+              <button type="button" className="auth-chip" onClick={() => setShowLogin(true)}>🔒 Sign in</button>
+            )}
+          </div>
+        }
+      />
 
       {currentView === 'home' && (
         <div className="wrap">
-      <div className="header-bar">
-        <img src="/logoek.png" alt="Sithira Madam — Live Your Own Palace" className="brand-logo" />
-        <div className="auth-bar">
-          {isEditor ? (
-            <button type="button" className="auth-chip" onClick={handleLogout}>🔓 Signed in · Sign out</button>
-          ) : showLogin ? (
-            <form className="login-box" onSubmit={handleLogin}>
-              <input
-                type="password"
-                placeholder="Password"
-                aria-label="Password"
-                autoFocus
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              <button type="submit" className="auth-chip primary" disabled={signingIn}>{signingIn ? '…' : 'Enter'}</button>
-              <button type="button" className="auth-chip" onClick={() => { setShowLogin(false); setAuthError('') }}>Cancel</button>
-              {authError && <span className="auth-error">{authError}</span>}
-            </form>
-          ) : (
-            <button type="button" className="auth-chip" onClick={() => setShowLogin(true)}>🔒 Sign in</button>
-          )}
-        </div>
-      </div>
 
       {syncError && (
         <div className="sync-banner">
@@ -343,11 +361,12 @@ function App() {
                 >
                   <td className="sl center" data-label="#">{rows.indexOf(row) + 1}</td>
                   <td data-label="Date">
-                    <input
-                      type="date"
-                      value={row.date}
+                    <DatePicker
+                      selected={parseDateStr(row.date)}
+                      onChange={(date) => updateRow(row.id, 'date', formatDateStr(date))}
                       disabled={!isEditor}
-                      onChange={(e) => updateRow(row.id, 'date', e.target.value)}
+                      dateFormat="yyyy-MM-dd"
+                      placeholderText="Select Date"
                     />
                   </td>
                   <td data-label="Activity">
@@ -373,19 +392,23 @@ function App() {
                     </button>
                   </td>
                   <td data-label="Start Date">
-                    <input
-                      type="date"
-                      value={row.startDate || ''}
+                    <DatePicker
+                      selected={parseDateStr(row.startDate)}
+                      onChange={(date) => updateRow(row.id, 'startDate', formatDateStr(date))}
                       disabled={!isEditor}
-                      onChange={(e) => updateRow(row.id, 'startDate', e.target.value)}
+                      dateFormat="yyyy-MM-dd"
+                      placeholderText="Start Date"
+                      isClearable={isEditor}
                     />
                   </td>
                   <td data-label="End Date">
-                    <input
-                      type="date"
-                      value={row.endDate || ''}
+                    <DatePicker
+                      selected={parseDateStr(row.endDate)}
+                      onChange={(date) => updateRow(row.id, 'endDate', formatDateStr(date))}
                       disabled={!isEditor}
-                      onChange={(e) => updateRow(row.id, 'endDate', e.target.value)}
+                      dateFormat="yyyy-MM-dd"
+                      placeholderText="End Date"
+                      isClearable={isEditor}
                     />
                   </td>
                   <td className="num" data-label="Score">

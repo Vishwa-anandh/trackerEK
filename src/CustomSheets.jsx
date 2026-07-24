@@ -4,6 +4,20 @@ import { exportCsv, exportPdf, exportDoc } from './export'
 import ConfirmModal from './ConfirmModal'
 import { db } from './firebase'
 import './CustomSheets.css'
+import DatePicker from "react-datepicker"
+
+function parseDateStr(ds) {
+  if (!ds) return null
+  const [y, m, d] = ds.split('-')
+  return new Date(y, m - 1, d)
+}
+function formatDateStr(d) {
+  if (!d) return ''
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const dy = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${dy}`
+}
 
 const sheetsRef = doc(db, 'trackers', 'custom_sheets')
 
@@ -16,7 +30,7 @@ function total(row) {
   return num(row.score) + num(row.bonus)
 }
 
-export default function CustomSheets({ isEditor, currentView, setCurrentView }) {
+export default function CustomSheets({ isEditor, currentView, setCurrentView, authElement }) {
   const [data, setData] = useState({ sheets: [], activeSheetId: null })
   const [loading, setLoading] = useState(true)
   const [syncError, setSyncError] = useState(false)
@@ -148,29 +162,47 @@ export default function CustomSheets({ isEditor, currentView, setCurrentView }) 
     })
   }
 
-  function promptRemoveSheet(sheetId) {
-    setModalConfig({ type: 'sheet', targetId: sheetId, title: 'Delete Sheet', message: 'Are you sure you want to delete this sheet?' })
+  function promptRemoveSheet(id) {
+    setModalConfig({
+      type: 'sheet',
+      targetId: id,
+      title: 'Delete Sheet',
+      message: 'Are you sure you want to delete this sheet? This cannot be undone.',
+      confirmText: 'Delete Sheet'
+    })
   }
 
-  function addRow() {
-    updateActiveSheet((sheet) => ({
-      ...sheet,
-      rows: [...sheet.rows, { id: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }]
-    }))
-  }
-
-  function promptRemoveRow(rowId) {
-    setModalConfig({ type: 'row', targetId: rowId, title: 'Delete Row', message: 'Are you sure you want to delete this row?' })
+  function promptRemoveRow(id) {
+    setModalConfig({
+      type: 'row',
+      targetId: id,
+      title: 'Delete Row',
+      message: 'Are you sure you want to delete this row? This cannot be undone.',
+      confirmText: 'Delete Row'
+    })
   }
 
   function updateRow(rowId, field, value) {
+    if (!isEditor) return
     updateActiveSheet((sheet) => ({
       ...sheet,
       rows: sheet.rows.map(r => r.id === rowId ? { ...r, [field]: value } : r)
     }))
   }
 
+  function addRow() {
+    if (!isEditor) return
+    updateActiveSheet((sheet) => ({
+      ...sheet,
+      rows: [
+        ...sheet.rows,
+        { id: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }
+      ]
+    }))
+  }
+
   function toggleSubmitted(rowId) {
+    if (!isEditor) return
     updateActiveSheet((sheet) => ({
       ...sheet,
       rows: sheet.rows.map(r => r.id === rowId ? { ...r, submitted: !r.submitted } : r)
@@ -214,12 +246,15 @@ export default function CustomSheets({ isEditor, currentView, setCurrentView }) 
   return (
     <>
       <nav className="top-nav">
-        <button 
-          className={'nav-btn ' + (currentView === 'home' ? 'active' : '')} 
-          onClick={() => setCurrentView('home')}
-        >
-          Tracker Home
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+          <img src="/logoek.png" alt="Sithira Madam — Live Your Own Palace" className="brand-logo-small" />
+          <button 
+            className={'nav-btn ' + (currentView === 'home' ? 'active' : '')} 
+            onClick={() => setCurrentView('home')}
+          >
+            Tracker Home
+          </button>
+        </div>
         <div className="cs-tabs-header">
           {data.sheets.map((sheet) => (
             <div key={sheet.id} className={'cs-tab-group ' + (sheet.id === data.activeSheetId && currentView !== 'home' ? 'active' : '')}>
@@ -250,6 +285,7 @@ export default function CustomSheets({ isEditor, currentView, setCurrentView }) 
             }}>+ New Sheet</button>
           )}
         </div>
+        {authElement}
       </nav>
 
       {currentView !== 'home' && (
@@ -355,11 +391,12 @@ export default function CustomSheets({ isEditor, currentView, setCurrentView }) 
                   >
                     <td className="sl center" data-label="#">{activeSheet.rows.indexOf(row) + 1}</td>
                     <td data-label="Date">
-                      <input
-                        type="date"
-                        value={row.date || ''}
+                      <DatePicker
+                        selected={parseDateStr(row.date)}
+                        onChange={(date) => updateRow(row.id, 'date', formatDateStr(date))}
                         disabled={!isEditor}
-                        onChange={(e) => updateRow(row.id, 'date', e.target.value)}
+                        dateFormat="yyyy-MM-dd"
+                        placeholderText="Select Date"
                       />
                     </td>
                     <td data-label="Activity">
@@ -384,19 +421,23 @@ export default function CustomSheets({ isEditor, currentView, setCurrentView }) 
                       </button>
                     </td>
                     <td data-label="Start Date">
-                      <input
-                        type="date"
-                        value={row.startDate || ''}
+                      <DatePicker
+                        selected={parseDateStr(row.startDate)}
+                        onChange={(date) => updateRow(row.id, 'startDate', formatDateStr(date))}
                         disabled={!isEditor}
-                        onChange={(e) => updateRow(row.id, 'startDate', e.target.value)}
+                        dateFormat="yyyy-MM-dd"
+                        placeholderText="Start Date"
+                        isClearable={isEditor}
                       />
                     </td>
                     <td data-label="End Date">
-                      <input
-                        type="date"
-                        value={row.endDate || ''}
+                      <DatePicker
+                        selected={parseDateStr(row.endDate)}
+                        onChange={(date) => updateRow(row.id, 'endDate', formatDateStr(date))}
                         disabled={!isEditor}
-                        onChange={(e) => updateRow(row.id, 'endDate', e.target.value)}
+                        dateFormat="yyyy-MM-dd"
+                        placeholderText="End Date"
+                        isClearable={isEditor}
                       />
                     </td>
                     <td className="num" data-label="Score">

@@ -15,35 +15,55 @@
   font-weight: 700;
   letter-spacing: -0.01em;
   margin: 0 0 0.3rem;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   color: var(--ink);
   width: 100%;
+  padding: 0.2rem 0.5rem;
+  margin-left: -0.5rem;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+.cs-title-input:hover {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
 }
 .cs-title-input:focus {
   outline: none;
-  border-bottom: 2px solid var(--accent);
+  background: var(--panel);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .cs-desc-input {
   font-family: var(--body);
   font-size: 1rem;
   color: var(--ink-dim);
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   width: 100%;
+  padding: 0.2rem 0.5rem;
+  margin-left: -0.5rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+.cs-desc-input:hover {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
 }
 .cs-desc-input:focus {
   outline: none;
-  border-bottom: 1px solid var(--accent);
+  background: var(--panel);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .cs-tabs-header {
-  display: flex;
-  gap: 0.5rem;
+  display: inline-flex;
+  gap: 0.1rem;
   overflow-x: auto;
   align-items: center;
-  flex: 1;
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  padding: 0.2rem;
+  border-radius: 8px;
 }
 
 .cs-tab-group {
@@ -51,26 +71,25 @@
   align-items: center;
   border-radius: 6px;
   background: transparent;
-}
-.cs-tab-group:hover {
-  background: var(--panel);
+  transition: background-color 0.15s, box-shadow 0.15s;
 }
 .cs-tab-group.active {
-  background: var(--accent);
+  background: var(--panel);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 1px rgba(0,0,0,0.04);
 }
 
 .cs-tab {
   background: transparent;
   border: none;
-  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  padding: 0.35rem 0.5rem 0.35rem 0.8rem;
   cursor: pointer;
   font-family: var(--body);
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--ink-dim);
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--ink);
 }
 .cs-tab-group.active .cs-tab {
-  color: var(--accent-ink);
+  font-weight: 600;
 }
 
 .cs-del-sheet {
@@ -78,9 +97,9 @@
   border: none;
   color: var(--ink-dim);
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   line-height: 1;
-  padding: 0.3rem 0.5rem 0.3rem 0;
+  padding: 0.2rem 0.5rem 0.2rem 0.2rem;
   opacity: 0.6;
 }
 .cs-del-sheet:hover {
@@ -88,7 +107,7 @@
   color: var(--bad);
 }
 .cs-tab-group.active .cs-del-sheet {
-  color: var(--accent-ink);
+  color: var(--ink);
 }
 
 .cs-add-sheet {
@@ -105,8 +124,8 @@
   overflow-x: auto;
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .cs-table {
@@ -133,15 +152,21 @@
 
 .cs-table input {
   width: 100%;
-  border: none;
+  border: 1px solid transparent;
   background: transparent;
   font-family: var(--body);
   font-size: 0.95rem;
   color: var(--ink);
+  padding: 0.32rem 0.4rem;
+  border-radius: 6px;
+  transition: all 0.15s ease;
 }
+.cs-table input:hover { background: color-mix(in srgb, var(--ink) 4%, transparent); }
 .cs-table input:focus {
+  background: var(--panel);
+  border-color: var(--accent);
   outline: none;
-  background: var(--bg);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
 }
 
 .cs-col-header {

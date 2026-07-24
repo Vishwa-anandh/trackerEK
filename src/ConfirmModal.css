@@ -14,19 +14,22 @@
 }
 
 .modal-content {
-  background: var(--panel);
-  padding: 1.5rem 2rem;
-  border-radius: 12px;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+  background: var(--panel-translucent);
+  backdrop-filter: blur(30px) saturate(200%);
+  -webkit-backdrop-filter: blur(30px) saturate(200%);
+  padding: 1.5rem;
+  border-radius: 14px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.05);
   width: 90%;
-  max-width: 400px;
-  text-align: left;
+  max-width: 320px;
+  text-align: center;
 }
 
 .modal-title {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.4rem;
   font-family: var(--display);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
+  font-weight: 600;
   color: var(--ink);
 }
 
@@ -35,41 +38,41 @@
   color: var(--ink-dim);
   line-height: 1.4;
   font-family: var(--body);
+  font-size: 0.85rem;
 }
 
 .modal-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .modal-btn {
-  padding: 0.6rem 1.2rem;
-  border-radius: 6px;
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
   border: none;
   font-family: var(--body);
   font-size: 0.95rem;
-  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.1s;
 }
 
 .modal-btn.cancel {
-  background: transparent;
-  color: var(--ink-dim);
-  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 8%, transparent);
+  color: var(--ink);
+  font-weight: 500;
 }
 
 .modal-btn.cancel:hover {
-  background: var(--paper);
-  color: var(--ink);
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
 }
 
 .modal-btn.confirm {
   background: var(--bad);
   color: white;
+  font-weight: 600;
 }
 
 .modal-btn.confirm:hover {
-  background: #a33220; /* slightly darker shade of var(--bad) */
+  background: color-mix(in srgb, var(--bad) 80%, black);
 }
