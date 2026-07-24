@@ -466,6 +466,7 @@ export default function CustomSheets({ isEditor, currentView, setCurrentView }) 
 
       {modalConfig && (
         <ConfirmModal
+          isOpen={true}
           title={modalConfig.title}
           message={modalConfig.message}
           onConfirm={handleConfirm}
