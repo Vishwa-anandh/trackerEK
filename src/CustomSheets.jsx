@@ -11,6 +11,13 @@ export default function CustomSheets({ data, setData, isEditor, currentView, set
     setData((prev) => updater(prev))
   }
 
+  // Navigation only — allowed for read-only viewers too. The debounced
+  // save in App.jsx is editor-gated, so this never persists for visitors.
+  function selectSheet(id) {
+    setData((prev) => ({ ...prev, activeSheetId: id }))
+    setCurrentView('custom')
+  }
+
   function addSheet() {
     const id = 'sheet_' + Date.now()
     updateData((prev) => ({
@@ -72,10 +79,7 @@ export default function CustomSheets({ data, setData, isEditor, currentView, set
             <div key={sheet.id} className={'cs-tab-group ' + (sheet.id === data.activeSheetId && currentView !== 'home' ? 'active' : '')}>
               <button
                 className="cs-tab"
-                onClick={() => {
-                  updateData(prev => ({ ...prev, activeSheetId: sheet.id }))
-                  setCurrentView('custom')
-                }}
+                onClick={() => selectSheet(sheet.id)}
               >
                 {sheet.title || 'Untitled'}
               </button>
