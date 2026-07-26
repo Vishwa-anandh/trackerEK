@@ -9,20 +9,10 @@ import ConfirmModal from './ConfirmModal'
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import "./DatePicker.css"
+import { parseDateStr, formatDateStr, num, total } from './sheetUtils'
 
-function parseDateStr(ds) {
-  if (!ds) return null
-  const [y, m, d] = ds.split('-')
-  return new Date(y, m - 1, d)
-}
-function formatDateStr(d) {
-  if (!d) return ''
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, '0')
-  const dy = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${dy}`
-}
 const trackerRef = doc(db, 'trackers', 'main')
+const sheetsRef = doc(db, 'trackers', 'custom_sheets')
 const OWNER_EMAIL = import.meta.env.VITE_OWNER_EMAIL
 
 const seed = [
@@ -30,15 +20,6 @@ const seed = [
   { id: 2, date: '2026-07-24', activity: 'Chief Guest Intro', submitted: true, startDate: '', endDate: '', score: 30, bonus: 20, remarks: 'Presented on stage' },
   { id: 3, date: '2026-07-24', activity: 'EKT Test', submitted: true, startDate: '', endDate: '', score: 15, bonus: 0, remarks: '' },
 ]
-
-function num(v) {
-  const n = parseFloat(v)
-  return Number.isNaN(n) ? 0 : n
-}
-
-function total(row) {
-  return num(row.score) + num(row.bonus)
-}
 
 function App() {
   const [currentView, setCurrentView] = useState('home')
@@ -67,6 +48,10 @@ function App() {
   const [signingIn, setSigningIn] = useState(false)
   const [entryToDelete, setEntryToDelete] = useState(null)
   const isEditor = !!user
+
+  const [sheetsData, setSheetsData] = useState({ sheets: [], activeSheetId: null })
+  const sheetsHydrated = useRef(false)
+  const sheetsSaveTimer = useRef(null)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
@@ -141,11 +126,85 @@ function App() {
     return () => clearTimeout(saveTimer.current)
   }, [rows, name, isEditor])
 
-  const grandTotal = useMemo(() => rows.reduce((sum, r) => sum + total(r), 0), [rows])
-  const submittedCount = useMemo(() => rows.filter((r) => r.submitted).length, [rows])
-  const rate = rows.length ? Math.round((submittedCount / rows.length) * 100) : 0
-  const scoreSum = useMemo(() => rows.reduce((sum, r) => sum + num(r.score), 0), [rows])
-  const bonusSum = useMemo(() => rows.reduce((sum, r) => sum + num(r.bonus), 0), [rows])
+  useEffect(() => {
+    if (!authChecked) return
+    const unsubscribe = onSnapshot(
+      sheetsRef,
+      (snap) => {
+        if (snap.exists()) {
+          const fetchedData = snap.data()
+          if (!fetchedData.activeSheetId && fetchedData.sheets?.length > 0) {
+            fetchedData.activeSheetId = fetchedData.sheets[0].id
+          }
+          setSheetsData(fetchedData)
+        } else if (auth.currentUser) {
+          const initialSheetId = 'sheet_' + Date.now()
+          const initialData = {
+            sheets: [
+              {
+                id: initialSheetId,
+                title: 'New Sheet',
+                description: 'Double click to edit description...',
+                rows: [{ id: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }]
+              }
+            ],
+            activeSheetId: initialSheetId
+          }
+          setDoc(sheetsRef, initialData)
+        } else {
+          setSheetsData({ sheets: [], activeSheetId: null })
+        }
+        sheetsHydrated.current = true
+      },
+      (err) => {
+        console.error('Firestore listen failed', err)
+        setSyncError(true)
+      },
+    )
+    return unsubscribe
+  }, [authChecked])
+
+  useEffect(() => {
+    if (!sheetsHydrated.current || !isEditor) return
+    clearTimeout(sheetsSaveTimer.current)
+    sheetsSaveTimer.current = setTimeout(() => {
+      setDoc(sheetsRef, sheetsData, { merge: true })
+        .catch((err) => {
+          console.error('Firestore save failed', err)
+          setSyncError(true)
+        })
+    }, 500)
+    return () => clearTimeout(sheetsSaveTimer.current)
+  }, [sheetsData, isEditor])
+
+  function updateSheetById(id, updater) {
+    if (!isEditor) return
+    setSheetsData((prev) => {
+      const idx = prev.sheets.findIndex((s) => s.id === id)
+      if (idx === -1) return prev
+      const newSheets = [...prev.sheets]
+      newSheets[idx] = updater(newSheets[idx])
+      return { ...prev, sheets: newSheets }
+    })
+  }
+
+  const MAIN_LABEL = 'Ryla 61.0 Tracker'
+
+  // Every entry across the main sheet + all subsheets, each tagged with its source sheet.
+  const combinedEntries = useMemo(() => {
+    const main = rows.map((r) => ({ row: r, source: 'main', sheetTitle: MAIN_LABEL }))
+    const subs = sheetsData.sheets.flatMap((s) =>
+      s.rows.map((r) => ({ row: r, source: s.id, sheetTitle: s.title || 'Untitled' }))
+    )
+    return [...main, ...subs]
+  }, [rows, sheetsData])
+
+  const grandTotal = useMemo(() => combinedEntries.reduce((sum, e) => sum + total(e.row), 0), [combinedEntries])
+  const scoreSum = useMemo(() => combinedEntries.reduce((sum, e) => sum + num(e.row.score), 0), [combinedEntries])
+  const bonusSum = useMemo(() => combinedEntries.reduce((sum, e) => sum + num(e.row.bonus), 0), [combinedEntries])
+  const submittedCount = useMemo(() => combinedEntries.filter((e) => e.row.submitted).length, [combinedEntries])
+  const totalEntries = combinedEntries.length
+  const rate = totalEntries ? Math.round((submittedCount / totalEntries) * 100) : 0
 
   useEffect(() => {
     function closeOnOutsideClick(e) {
@@ -167,21 +226,35 @@ function App() {
     return () => clearTimeout(bumpTimer.current)
   }, [grandTotal])
 
-  const visibleRows = rows.filter((row) => {
-    if (filter === 'submitted' && !row.submitted) return false
-    if (filter === 'pending' && row.submitted) return false
-    if (search && !row.activity.toLowerCase().includes(search.trim().toLowerCase())) return false
+  const visibleEntries = combinedEntries.filter((e) => {
+    if (filter === 'submitted' && !e.row.submitted) return false
+    if (filter === 'pending' && e.row.submitted) return false
+    if (search && !(e.row.activity || '').toLowerCase().includes(search.trim().toLowerCase())) return false
     return true
   })
 
-  function updateRow(id, field, value) {
+  function updateRow(source, id, field, value) {
     if (!isEditor) return
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
+    if (source === 'main') {
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)))
+    } else {
+      updateSheetById(source, (s) => ({
+        ...s,
+        rows: s.rows.map((r) => (r.id === id ? { ...r, [field]: value } : r)),
+      }))
+    }
   }
 
-  function toggleSubmitted(id) {
+  function toggleSubmitted(source, id) {
     if (!isEditor) return
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, submitted: !r.submitted } : r)))
+    if (source === 'main') {
+      setRows((prev) => prev.map((r) => (r.id === id ? { ...r, submitted: !r.submitted } : r)))
+    } else {
+      updateSheetById(source, (s) => ({
+        ...s,
+        rows: s.rows.map((r) => (r.id === id ? { ...r, submitted: !r.submitted } : r)),
+      }))
+    }
   }
 
   function addRow() {
@@ -194,18 +267,22 @@ function App() {
     requestAnimationFrame(() => lastActivityRef.current?.focus())
   }
 
-  function deleteRow(id) {
+  function deleteRow(source, id) {
     if (!isEditor) return
-    setEntryToDelete(id)
+    setEntryToDelete({ source, id })
   }
 
   function confirmDeleteRow() {
-    if (entryToDelete === null) return
-    const id = entryToDelete
+    if (!entryToDelete) return
+    const { source, id } = entryToDelete
     setEntryToDelete(null)
-    setFadingId(id)
+    setFadingId(`${source}-${id}`)
     setTimeout(() => {
-      setRows((prev) => prev.filter((r) => r.id !== id))
+      if (source === 'main') {
+        setRows((prev) => prev.filter((r) => r.id !== id))
+      } else {
+        updateSheetById(source, (s) => ({ ...s, rows: s.rows.filter((r) => r.id !== id) }))
+      }
       setFadingId(null)
     }, 140)
   }
@@ -218,9 +295,9 @@ function App() {
   }
 
   function runExport(fn) {
-    const title = name ? `${name} — Ryla 61.0 Tracker` : 'Ryla 61.0 Tracker'
-    const prefix = (name ? `${name}-scorecard` : 'scorecard').toLowerCase().replace(/\s+/g, '-')
-    fn(rows, total, prefix, title)
+    const title = name ? `${name} — Overall (All Sheets)` : 'Overall (All Sheets)'
+    const prefix = (name ? `${name}-overall` : 'overall').toLowerCase().replace(/\s+/g, '-')
+    fn(combinedEntries.map((e) => e.row), total, prefix, title)
     if (exportMenuRef.current) exportMenuRef.current.open = false
   }
 
@@ -234,10 +311,13 @@ function App() {
 
   return (
     <>
-      <CustomSheets 
-        isEditor={isEditor} 
-        currentView={currentView} 
-        setCurrentView={setCurrentView} 
+      <CustomSheets
+        data={sheetsData}
+        setData={setSheetsData}
+        updateSheetById={updateSheetById}
+        isEditor={isEditor}
+        currentView={currentView}
+        setCurrentView={setCurrentView}
         authElement={
           <div className="auth-bar">
             {isEditor ? (
@@ -273,7 +353,7 @@ function App() {
       )}
       <div className="scoreboard">
         <div className="title-block">
-          <h1>Ryla 61.0 Tracker</h1>
+          <h1>Overall</h1>
           <input
             className="name-field"
             type="text"
@@ -292,8 +372,8 @@ function App() {
       </div>
 
       <div className="mini-stats">
-        <div className="mini-stat">Entries <b>{rows.length}</b></div>
-        <div className="mini-stat">Submitted <b>{submittedCount}/{rows.length}</b></div>
+        <div className="mini-stat">Entries <b>{totalEntries}</b></div>
+        <div className="mini-stat">Submitted <b>{submittedCount}/{totalEntries}</b></div>
         <div className="mini-stat">
           Rate <b>{rate}%</b>
           <span className="rate-track"><span className="rate-fill" style={{ width: rate + '%' }} /></span>
@@ -341,6 +421,7 @@ function App() {
               <th className="center" style={{ width: '2.5rem' }}>#</th>
               <th style={{ width: '9.5rem' }}>Date</th>
               <th>Activity</th>
+              <th style={{ width: '10rem' }}>Sheet</th>
               <th className="center" style={{ width: '5.5rem' }}>Submitted</th>
               <th style={{ width: '9.5rem' }}>Start Date</th>
               <th style={{ width: '9.5rem' }}>End Date</th>
@@ -352,18 +433,20 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {visibleRows.map((row, i) => {
-              const isLast = i === visibleRows.length - 1
+            {visibleEntries.map((entry, i) => {
+              const { row, source, sheetTitle } = entry
+              const isLast = i === visibleEntries.length - 1
+              const rowKey = `${source}-${row.id}`
               return (
                 <tr
-                  key={row.id}
-                  className={(row.submitted ? 'submitted' : 'pending') + (fadingId === row.id ? ' fade-out' : '')}
+                  key={rowKey}
+                  className={(row.submitted ? 'submitted' : 'pending') + (fadingId === rowKey ? ' fade-out' : '')}
                 >
-                  <td className="sl center" data-label="#">{rows.indexOf(row) + 1}</td>
+                  <td className="sl center" data-label="#">{i + 1}</td>
                   <td data-label="Date">
                     <DatePicker
                       selected={parseDateStr(row.date)}
-                      onChange={(date) => updateRow(row.id, 'date', formatDateStr(date))}
+                      onChange={(date) => updateRow(source, row.id, 'date', formatDateStr(date))}
                       disabled={!isEditor}
                       dateFormat="yyyy-MM-dd"
                       placeholderText="Select Date"
@@ -373,11 +456,14 @@ function App() {
                     <input
                       type="text"
                       placeholder="Activity name"
-                      value={row.activity}
+                      value={row.activity || ''}
                       disabled={!isEditor}
                       ref={isLast ? lastActivityRef : null}
-                      onChange={(e) => updateRow(row.id, 'activity', e.target.value)}
+                      onChange={(e) => updateRow(source, row.id, 'activity', e.target.value)}
                     />
+                  </td>
+                  <td data-label="Sheet">
+                    <span className="sheet-tag">{sheetTitle}</span>
                   </td>
                   <td className="center" data-label="Submitted">
                     <button
@@ -386,7 +472,7 @@ function App() {
                       aria-pressed={row.submitted}
                       aria-label="Toggle submitted"
                       disabled={!isEditor}
-                      onClick={() => toggleSubmitted(row.id)}
+                      onClick={() => toggleSubmitted(source, row.id)}
                     >
                       {row.submitted ? '✓' : '✕'}
                     </button>
@@ -394,7 +480,7 @@ function App() {
                   <td data-label="Start Date">
                     <DatePicker
                       selected={parseDateStr(row.startDate)}
-                      onChange={(date) => updateRow(row.id, 'startDate', formatDateStr(date))}
+                      onChange={(date) => updateRow(source, row.id, 'startDate', formatDateStr(date))}
                       disabled={!isEditor}
                       dateFormat="yyyy-MM-dd"
                       placeholderText="Start Date"
@@ -404,7 +490,7 @@ function App() {
                   <td data-label="End Date">
                     <DatePicker
                       selected={parseDateStr(row.endDate)}
-                      onChange={(date) => updateRow(row.id, 'endDate', formatDateStr(date))}
+                      onChange={(date) => updateRow(source, row.id, 'endDate', formatDateStr(date))}
                       disabled={!isEditor}
                       dateFormat="yyyy-MM-dd"
                       placeholderText="End Date"
@@ -416,9 +502,9 @@ function App() {
                       type="number"
                       inputMode="numeric"
                       min="0"
-                      value={row.score}
+                      value={row.score ?? ''}
                       disabled={!isEditor}
-                      onChange={(e) => updateRow(row.id, 'score', e.target.value)}
+                      onChange={(e) => updateRow(source, row.id, 'score', e.target.value)}
                     />
                   </td>
                   <td className="num" data-label="Bonus">
@@ -426,9 +512,9 @@ function App() {
                       type="number"
                       inputMode="numeric"
                       min="0"
-                      value={row.bonus}
+                      value={row.bonus ?? ''}
                       disabled={!isEditor}
-                      onChange={(e) => updateRow(row.id, 'bonus', e.target.value)}
+                      onChange={(e) => updateRow(source, row.id, 'bonus', e.target.value)}
                     />
                   </td>
                   <td className="num total-cell" data-label="Total">{total(row)}</td>
@@ -436,15 +522,15 @@ function App() {
                     <input
                       type="text"
                       placeholder="–"
-                      value={row.remarks}
+                      value={row.remarks || ''}
                       disabled={!isEditor}
                       onKeyDown={(e) => handleRemarksKeyDown(e, isLast)}
-                      onChange={(e) => updateRow(row.id, 'remarks', e.target.value)}
+                      onChange={(e) => updateRow(source, row.id, 'remarks', e.target.value)}
                     />
                   </td>
                   <td className="row-actions" data-label="">
                     {isEditor && (
-                      <button className="row-del" title="Delete entry" aria-label="Delete entry" onClick={() => deleteRow(row.id)}>✕</button>
+                      <button className="row-del" title="Delete entry" aria-label="Delete entry" onClick={() => deleteRow(source, row.id)}>✕</button>
                     )}
                   </td>
                 </tr>
@@ -452,15 +538,15 @@ function App() {
             })}
             {isEditor && (
               <tr className="add-row">
-                <td colSpan={11}>
-                  <button type="button" className="add-entry-btn" onClick={addRow}>+ Add entry</button>
+                <td colSpan={12}>
+                  <button type="button" className="add-entry-btn" onClick={addRow}>+ Add entry (to {MAIN_LABEL})</button>
                 </td>
               </tr>
             )}
           </tbody>
           <tfoot>
             <tr>
-              <td colSpan={6} className="foot-label" data-label="">Overall</td>
+              <td colSpan={7} className="foot-label" data-label="">Overall</td>
               <td className="num foot-total" data-label="Score">{scoreSum}</td>
               <td className="num foot-total" data-label="Bonus">{bonusSum}</td>
               <td className="num foot-total" data-label="Total">{grandTotal}</td>
@@ -468,7 +554,7 @@ function App() {
             </tr>
           </tfoot>
         </table>
-        {visibleRows.length === 0 && (
+        {visibleEntries.length === 0 && (
           <div className="empty">
             <strong>No entries match</strong>
             <span>Try a different filter or search, or add a new activity above.</span>

@@ -474,6 +474,21 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
   gap: 0.5rem;
   margin-top: 0.7rem;
 }
+
+.sheet-tag {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ink-dim);
+  background: var(--chip-bg, rgba(0, 0, 0, 0.05));
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.08));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .save-note {
   font-size: 0.75rem;
   color: var(--ink-dim);
