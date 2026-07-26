@@ -9,7 +9,7 @@ import ConfirmModal from './ConfirmModal'
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import "./DatePicker.css"
-import { parseDateStr, formatDateStr, num, total } from './sheetUtils'
+import { parseDateStr, formatDateStr, total, sumSubmitted } from './sheetUtils'
 
 const trackerRef = doc(db, 'trackers', 'main')
 const sheetsRef = doc(db, 'trackers', 'custom_sheets')
@@ -199,9 +199,11 @@ function App() {
     return [...main, ...subs]
   }, [rows, sheetsData])
 
-  const grandTotal = useMemo(() => combinedEntries.reduce((sum, e) => sum + total(e.row), 0), [combinedEntries])
-  const scoreSum = useMemo(() => combinedEntries.reduce((sum, e) => sum + num(e.row.score), 0), [combinedEntries])
-  const bonusSum = useMemo(() => combinedEntries.reduce((sum, e) => sum + num(e.row.bonus), 0), [combinedEntries])
+  // Only submitted entries count toward the totals.
+  const { score: scoreSum, bonus: bonusSum, total: grandTotal } = useMemo(
+    () => sumSubmitted(combinedEntries.map((e) => e.row)),
+    [combinedEntries]
+  )
   const submittedCount = useMemo(() => combinedEntries.filter((e) => e.row.submitted).length, [combinedEntries])
   const totalEntries = combinedEntries.length
   const rate = totalEntries ? Math.round((submittedCount / totalEntries) * 100) : 0

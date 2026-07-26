@@ -20,3 +20,17 @@ export function num(v) {
 export function total(row) {
   return num(row.score) + num(row.bonus)
 }
+
+// Aggregate score/bonus/total across rows, counting submitted rows only.
+export function sumSubmitted(rows) {
+  return rows.reduce(
+    (acc, row) => {
+      if (!row.submitted) return acc
+      acc.score += num(row.score)
+      acc.bonus += num(row.bonus)
+      acc.total += total(row)
+      return acc
+    },
+    { score: 0, bonus: 0, total: 0 }
+  )
+}

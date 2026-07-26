@@ -4,7 +4,7 @@ import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import ConfirmModal from './ConfirmModal'
 import { exportCsv, exportPdf, exportDoc } from './export'
-import { parseDateStr, formatDateStr, num, total } from './sheetUtils'
+import { parseDateStr, formatDateStr, total, sumSubmitted } from './sheetUtils'
 
 const quillModules = {
   toolbar: false
@@ -19,9 +19,8 @@ export default function SubsheetPanel({ sheet, isEditor, onUpdateSheet }) {
   const bumpTimer = useRef(null)
   const exportMenuRef = useRef(null)
 
-  const scoreSum = sheet.rows.reduce((sum, row) => sum + num(row.score), 0)
-  const bonusSum = sheet.rows.reduce((sum, row) => sum + num(row.bonus), 0)
-  const grandTotal = sheet.rows.reduce((sum, row) => sum + total(row), 0)
+  // Only submitted rows count toward the totals.
+  const { score: scoreSum, bonus: bonusSum, total: grandTotal } = sumSubmitted(sheet.rows)
   const submittedCount = sheet.rows.filter((r) => r.submitted).length
   const rate = sheet.rows.length ? Math.round((submittedCount / sheet.rows.length) * 100) : 0
 
