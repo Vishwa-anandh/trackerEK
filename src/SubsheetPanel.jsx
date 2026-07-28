@@ -4,7 +4,7 @@ import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import ConfirmModal from './ConfirmModal'
 import { exportCsv, exportPdf, exportDoc } from './export'
-import { parseDateStr, formatDateStr, total, sumSubmitted } from './sheetUtils'
+import { parseDateStr, formatDateStr, parseDateTimeStr, formatDateTimeStr, total, sumSubmitted } from './sheetUtils'
 
 const quillModules = {
   toolbar: false
@@ -118,13 +118,16 @@ export default function SubsheetPanel({ sheet, isEditor, onUpdateSheet }) {
           />
           {(isEditor || sheet.endDate) && (
             <div className="cs-end-date">
-              <span className="cs-end-date-label">End date</span>
+              <span className="cs-end-date-label">End date &amp; time</span>
               <DatePicker
-                selected={parseDateStr(sheet.endDate)}
-                onChange={(date) => onUpdateSheet((s) => ({ ...s, endDate: formatDateStr(date) }))}
+                selected={parseDateTimeStr(sheet.endDate)}
+                onChange={(date) => onUpdateSheet((s) => ({ ...s, endDate: formatDateTimeStr(date) }))}
                 disabled={!isEditor}
-                dateFormat="yyyy-MM-dd"
-                placeholderText="Set end date"
+                showTimeSelect
+                timeIntervals={15}
+                timeCaption="Time"
+                dateFormat="yyyy-MM-dd h:mm aa"
+                placeholderText="Set end date and time"
                 isClearable={isEditor}
               />
             </div>

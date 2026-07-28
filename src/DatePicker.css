@@ -62,6 +62,34 @@
   border-color: var(--ink-dim) !important;
 }
 
+/* Time column, shown when showTimeSelect is on */
+.react-datepicker__time-container {
+  border-left: 1px solid var(--line) !important;
+}
+.react-datepicker__header--time {
+  background-color: var(--panel) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+.react-datepicker__time-container .react-datepicker__time,
+.react-datepicker__time-container .react-datepicker__time-box {
+  background-color: var(--panel) !important;
+}
+.react-datepicker__time-list-item {
+  color: var(--ink) !important;
+}
+.react-datepicker__time-list-item:hover {
+  background-color: var(--line) !important;
+}
+.react-datepicker__time-list-item--selected {
+  background-color: var(--accent) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+.react-datepicker__time-list-item--disabled {
+  color: var(--ink-dim) !important;
+  opacity: 0.4 !important;
+}
+
 .react-datepicker__navigation:hover *::before {
   border-color: var(--ink) !important;
 }

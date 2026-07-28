@@ -329,7 +329,7 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 0.3rem 1.5rem 0.3rem 0.55rem;
-  width: 10rem;
+  width: 13.5rem;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 .cs-end-date input:hover:not(:disabled) {
