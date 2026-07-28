@@ -78,6 +78,26 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 1px rgba(0,0,0,0.04);
 }
 
+/* Drag-to-reorder feedback */
+.cs-tab-group[draggable="true"] {
+  position: relative;
+}
+.cs-tab-group.dragging {
+  opacity: 0.4;
+}
+.cs-tab-group.drop-before::before,
+.cs-tab-group.drop-after::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.cs-tab-group.drop-before::before { left: -1px; }
+.cs-tab-group.drop-after::after { right: -1px; }
+
 .cs-tab {
   background: transparent;
   border: none;
@@ -259,6 +279,55 @@
   font-style: normal;
   color: var(--ink-dim);
   opacity: 0.6;
+}
+
+/* Sheet-level end date, sitting directly under the description */
+.cs-desc-quill:has(+ .cs-end-date) {
+  margin-bottom: 0.9rem;
+}
+.cs-end-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.2rem;
+}
+.cs-end-date-label {
+  font-size: 0.82rem;
+  color: var(--ink-dim);
+}
+/* the global wrapper rule stretches pickers to full width — not wanted here */
+.cs-end-date .react-datepicker-wrapper,
+.cs-end-date .react-datepicker__input-container {
+  display: inline-block;
+  width: auto;
+}
+.cs-end-date input {
+  font-family: var(--mono);
+  font-size: 0.9rem;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.3rem 1.5rem 0.3rem 0.55rem;
+  width: 10rem;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.cs-end-date input:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+.cs-end-date input:focus {
+  outline: none;
+  background: var(--panel);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+.cs-end-date input:disabled {
+  border-color: transparent;
+  padding-left: 0;
+  width: auto;
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+  opacity: 1;
 }
 /* Fix stroke colors in dark mode for toolbar icons */
 .ql-snow .ql-stroke {
