@@ -4,7 +4,7 @@ import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
 import ConfirmModal from './ConfirmModal'
 import { exportCsv, exportPdf, exportDoc } from './export'
-import { parseDateStr, formatDateStr, total, sumSubmitted } from './sheetUtils'
+import { parseDateStr, formatDateStr, total, sumSubmitted, lastEntryStamp, formatStamp } from './sheetUtils'
 
 const quillModules = {
   toolbar: false
@@ -23,6 +23,7 @@ export default function SubsheetPanel({ sheet, isEditor, onUpdateSheet }) {
   const { score: scoreSum, bonus: bonusSum, total: grandTotal } = sumSubmitted(sheet.rows)
   const submittedCount = sheet.rows.filter((r) => r.submitted).length
   const rate = sheet.rows.length ? Math.round((submittedCount / sheet.rows.length) * 100) : 0
+  const lastEntry = lastEntryStamp(sheet.rows)
 
   const visibleRows = sheet.rows.filter((row) => {
     if (filter === 'submitted' && !row.submitted) return false
@@ -73,7 +74,7 @@ export default function SubsheetPanel({ sheet, isEditor, onUpdateSheet }) {
       ...s,
       rows: [
         ...s.rows,
-        { id: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }
+        { id: Date.now(), createdAt: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }
       ]
     }))
   }
@@ -130,6 +131,7 @@ export default function SubsheetPanel({ sheet, isEditor, onUpdateSheet }) {
           Rate <b>{rate}%</b>
           <span className="rate-track"><span className="rate-fill" style={{ width: rate + '%' }} /></span>
         </div>
+        <div className="mini-stat">Last entry <b>{formatStamp(lastEntry)}</b></div>
       </div>
 
       <div className="toolbar">

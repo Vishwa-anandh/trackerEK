@@ -211,6 +211,7 @@ td input:disabled, .check:disabled { opacity: 0.55; cursor: not-allowed; }
   color: var(--ink);
   font-size: 0.95rem;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .rate-track {
   width: 90px;

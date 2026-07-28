@@ -9,7 +9,7 @@ import ConfirmModal from './ConfirmModal'
 import DatePicker from "react-datepicker"
 import "react-datepicker/dist/react-datepicker.css"
 import "./DatePicker.css"
-import { parseDateStr, formatDateStr, total, sumSubmitted } from './sheetUtils'
+import { parseDateStr, formatDateStr, total, sumSubmitted, lastEntryStamp, formatStamp } from './sheetUtils'
 
 const trackerRef = doc(db, 'trackers', 'main')
 const sheetsRef = doc(db, 'trackers', 'custom_sheets')
@@ -145,7 +145,7 @@ function App() {
                 id: initialSheetId,
                 title: 'New Sheet',
                 description: 'Double click to edit description...',
-                rows: [{ id: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }]
+                rows: [{ id: Date.now(), createdAt: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }]
               }
             ],
             activeSheetId: initialSheetId
@@ -207,6 +207,10 @@ function App() {
   const submittedCount = useMemo(() => combinedEntries.filter((e) => e.row.submitted).length, [combinedEntries])
   const totalEntries = combinedEntries.length
   const rate = totalEntries ? Math.round((submittedCount / totalEntries) * 100) : 0
+  const lastEntry = useMemo(
+    () => lastEntryStamp(combinedEntries.map((e) => e.row)),
+    [combinedEntries]
+  )
 
   useEffect(() => {
     function closeOnOutsideClick(e) {
@@ -264,7 +268,7 @@ function App() {
     const id = nextIdRef.current++
     setRows((prev) => [
       ...prev,
-      { id, date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' },
+      { id, createdAt: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' },
     ])
     requestAnimationFrame(() => lastActivityRef.current?.focus())
   }
@@ -380,6 +384,7 @@ function App() {
           Rate <b>{rate}%</b>
           <span className="rate-track"><span className="rate-fill" style={{ width: rate + '%' }} /></span>
         </div>
+        <div className="mini-stat">Last entry <b>{formatStamp(lastEntry)}</b></div>
       </div>
 
       <div className="toolbar">

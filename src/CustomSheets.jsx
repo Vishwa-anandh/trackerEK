@@ -28,7 +28,7 @@ export default function CustomSheets({ data, setData, isEditor, currentView, set
           id,
           title: 'Untitled Sheet',
           description: '',
-          rows: [{ id: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }]
+          rows: [{ id: Date.now(), createdAt: Date.now(), date: new Date().toISOString().slice(0, 10), activity: '', submitted: false, startDate: '', endDate: '', score: 0, bonus: 0, remarks: '' }]
         }
       ],
       activeSheetId: id
