@@ -9,9 +9,18 @@
   border-bottom: 1px solid var(--line);
   padding: 0.5rem 1rem;
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
   z-index: 100;
   box-shadow: 0 1px 0 rgba(0,0,0,0.05);
+}
+
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  min-width: 0;
 }
 
 .nav-btn {
@@ -68,7 +77,7 @@
   justify-content: flex-end;
   align-items: center;
   margin-left: auto;
-  flex: 1 1 auto;
+  flex: 0 0 auto;
 }
 .auth-chip {
   border: 1px solid var(--line);
@@ -348,7 +357,8 @@ input:focus-visible, .check:focus-visible, .add-entry-btn:focus-visible {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  overflow: hidden;
+  /* the table has a 900px minimum — scroll it rather than clipping the columns */
+  overflow-x: auto;
 }
 table { border-collapse: collapse; width: 100%; min-width: 900px; }
 thead th {
@@ -507,32 +517,16 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
 @media (prefers-reduced-motion: reduce) { .save-dot { transition: none; } }
 
 /* ---------- responsive: stacked cards ---------- */
-@media (max-width: 720px) {
-  .wrap { padding: 1.75rem 1rem 3rem; }
 
-  .header-bar { justify-content: center; }
-  .brand-logo { height: 46px; }
-  .auth-bar { justify-content: center; flex: 1 1 100%; }
-
-  .scoreboard { grid-template-columns: 1fr; gap: 1rem; }
-  .grand-tile { align-items: flex-start; padding: 0.85rem 1.2rem; min-width: 0; }
-  .grand-tile .num { font-size: 2.1rem; }
-  .title-block h1 { font-size: 1.55rem; }
-  .title-block p { max-width: none; }
-
-  .mini-stats { gap: 1rem 1.4rem; margin-bottom: 1.2rem; }
-
-  .toolbar { gap: 0.6rem; }
-  .search-box { width: 100%; }
-  .search-box input { width: 100%; min-height: 2.6rem; font-size: 0.95rem; }
-  .toolbar-right { width: 100%; }
-  .filters { flex: 1 1 auto; }
-  .filter-chip { flex: 1; text-align: center; padding: 0.55rem 0.5rem; }
-  .export-trigger { min-height: 2.6rem; }
-  .export-list { right: auto; left: 0; }
-
-  /* table becomes a stack of self-contained cards */
-  .table-shell { background: transparent; border: none; box-shadow: none; overflow: visible; }
+/* The columns need ~900px, so below that each row becomes a self-contained
+   card. Shared by the Overall table and every subsheet table. */
+@media (max-width: 900px) {
+  .table-shell, .cs-table-container {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    overflow: visible;
+  }
   table { min-width: 0; width: 100%; }
   thead { display: none; }
   tbody {
@@ -545,21 +539,39 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
   tbody tr {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-areas:
-      "head head"
-      "date date"
-      "activity activity"
-      "submitted submitted"
-      "start-date end-date"
-      "score bonus"
-      "total total"
-      "remarks remarks";
     gap: 0.5rem 0.7rem;
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 12px;
     box-shadow: var(--shadow);
     padding: 0.9rem 1rem 1rem;
+  }
+  /* Only the Overall table has a Sheet column, so the two differ by one row. */
+  /* Dates get a full row each — a date beside its label cannot fit half a card. */
+  .table-shell tbody tr {
+    grid-template-areas:
+      "head head"
+      "date date"
+      "activity activity"
+      "sheet sheet"
+      "submitted submitted"
+      "start-date start-date"
+      "end-date end-date"
+      "score bonus"
+      "total total"
+      "remarks remarks";
+  }
+  .cs-table-container tbody tr {
+    grid-template-areas:
+      "head head"
+      "date date"
+      "activity activity"
+      "submitted submitted"
+      "start-date start-date"
+      "end-date end-date"
+      "score bonus"
+      "total total"
+      "remarks remarks";
   }
   tbody tr.submitted, tbody tr.pending { box-shadow: var(--shadow); border-left: 3px solid var(--good); }
   tbody tr.pending { border-left-color: var(--bad); }
@@ -573,7 +585,7 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
   }
   .add-row td { gap: 0; }
   .add-row td::before { content: ""; width: 0; }
-  .add-entry-btn { border-top: none; text-align: center; padding: 0.85rem; }
+  .add-entry-btn { border-top: none; text-align: center; padding: 0.95rem; }
 
   td { padding: 0; display: flex; align-items: center; gap: 0.6rem; min-height: 2rem; }
   td.num { justify-content: space-between; }
@@ -586,7 +598,9 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
     width: 5rem;
     flex-shrink: 0;
   }
-  td input { min-height: 2.4rem; font-size: 0.95rem; }
+  /* 16px is the threshold below which iOS Safari zooms the page on focus. */
+  td input,
+  td .react-datepicker__input-container input { min-height: 2.6rem; font-size: 16px; }
 
   td.sl { grid-area: head; justify-self: start; padding-left: 0; color: var(--ink-dim); font-size: 0.8rem; }
   td.sl::before { content: ""; width: 0; }
@@ -594,16 +608,18 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
   td.row-actions::before { content: ""; width: 0; }
   td[data-label="Date"] { grid-area: date; }
   td[data-label="Activity"] { grid-area: activity; }
+  td[data-label="Sheet"] { grid-area: sheet; }
   td[data-label="Submitted"] { grid-area: submitted; }
   td[data-label="Start Date"] { grid-area: start-date; }
   td[data-label="End Date"] { grid-area: end-date; }
   td[data-label="Score"] { grid-area: score; }
   td[data-label="Bonus"] { grid-area: bonus; }
-  td[data-label="Total"] { grid-area: total; border-top: 1px dashed var(--line); padding-top: 0.5rem; margin-top: 0.1rem; }
+  /* scoped to tbody so the footer's Total cell keeps its own styling */
+  tbody td[data-label="Total"] { grid-area: total; border-top: 1px dashed var(--line); padding-top: 0.5rem; margin-top: 0.1rem; }
   td[data-label="Remarks"] { grid-area: remarks; }
 
-  .check { width: 2.4rem; height: 2.4rem; font-size: 1.1rem; }
-  .row-del { padding: 0.5rem 0.6rem; font-size: 1.1rem; }
+  .check { width: 2.75rem; height: 2.75rem; font-size: 1.15rem; }
+  .row-del { padding: 0.55rem 0.7rem; font-size: 1.15rem; }
 
   tfoot tr {
     display: flex;
@@ -619,13 +635,91 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
   tfoot .foot-label { width: 100%; }
   tfoot td::before { content: attr(data-label) ": "; font-size: 0.7rem; color: var(--ink-dim); text-transform: none; letter-spacing: 0; width: auto; }
   tfoot td:first-child::before { content: ""; }
+  /* the layout's spacer cells would otherwise add stray gaps to the strip */
+  tfoot td:empty { display: none; }
 
   .empty { padding: 2rem 1.25rem; }
+  .search-box input { font-size: 16px; }
+}
+
+/* Touch devices get comfortable targets at any width — a 12" tablet is still
+   driven by a fingertip, and small text fields still trigger focus zoom. */
+@media (pointer: coarse) {
+  td input,
+  td .react-datepicker__input-container input,
+  .search-box input,
+  .login-box input { font-size: 16px; }
+  .nav-btn { padding: 0.5rem 0.8rem; }
+  .auth-chip { padding: 0.5rem 0.95rem; }
+  .filter-chip { padding: 0.55rem 0.85rem; }
+  .export-trigger { min-height: 2.6rem; }
+  .export-list button { padding: 0.65rem 0.6rem; }
+  .check { min-width: 2.4rem; min-height: 2.4rem; }
+  .row-del { padding: 0.5rem 0.65rem; }
+  .add-entry-btn { padding: 0.9rem; }
+}
+
+/* ---------- responsive: phones ---------- */
+@media (max-width: 720px) {
+  .wrap {
+    padding: 1.5rem max(1rem, env(safe-area-inset-right)) 3rem max(1rem, env(safe-area-inset-left));
+  }
+
+  /* Brand + auth stay on the first row; the sheet tabs get their own full-width
+     row below, so the nav can never push the page sideways. */
+  .top-nav {
+    gap: 0.45rem 0.7rem;
+    padding: 0.45rem max(0.75rem, env(safe-area-inset-right)) 0.45rem max(0.75rem, env(safe-area-inset-left));
+  }
+  .nav-brand { gap: 0.5rem; flex: 0 1 auto; }
+  .brand-logo-small { height: 34px; }
+  .nav-btn { padding: 0.5rem 0.7rem; }
+
+  .auth-bar { order: 2; }
+  .auth-chip { padding: 0.5rem 0.9rem; font-size: 0.8rem; }
+  .login-box { flex: 1 1 100%; justify-content: flex-start; }
+  .login-box input { flex: 1 1 auto; width: auto; min-width: 0; font-size: 16px; }
+  .auth-error { text-align: left; }
+
+  .scoreboard { grid-template-columns: 1fr; gap: 0.9rem; }
+  .grand-tile { align-items: flex-start; padding: 0.85rem 1.2rem; min-width: 0; }
+  .grand-tile .num { font-size: 2.1rem; }
+  .title-block h1 { font-size: 1.55rem; }
+  .title-block p { max-width: none; }
+  .name-field { width: 100%; font-size: 1.15rem; }
+
+  .mini-stats { gap: 0.75rem 1.3rem; margin-bottom: 1.2rem; }
+
+  .toolbar { gap: 0.6rem; }
+  .search-box { width: 100%; }
+  .search-box input { width: 100%; min-height: 2.75rem; font-size: 16px; }
+  .toolbar-right { width: 100%; }
+  .filters { flex: 1 1 auto; }
+  .filter-chip { flex: 1; text-align: center; padding: 0.6rem 0.5rem; font-size: 0.9rem; }
+  .export-trigger { min-height: 2.75rem; justify-content: center; }
+  .export-list { right: auto; left: 0; min-width: 12rem; }
+
+  .sync-banner { font-size: 0.8rem; }
   .footer-row { justify-content: center; text-align: center; }
 }
 
 @media (max-width: 380px) {
-  tbody tr {
+  .table-shell tbody tr {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "head"
+      "date"
+      "activity"
+      "sheet"
+      "submitted"
+      "start-date"
+      "end-date"
+      "score"
+      "bonus"
+      "total"
+      "remarks";
+  }
+  .cs-table-container tbody tr {
     grid-template-columns: 1fr;
     grid-template-areas:
       "head"
@@ -639,4 +733,19 @@ tfoot .foot-total { font-size: 1.05rem; font-weight: 700; }
       "total"
       "remarks";
   }
+  td::before { width: 4.5rem; font-size: 0.62rem; }
+  .grand-tile .num { font-size: 1.85rem; }
+  .filter-chip { padding: 0.55rem 0.3rem; font-size: 0.82rem; }
+}
+
+/* Touch devices have no pointer to leave, so :hover states stick after a tap. */
+@media (hover: none) {
+  tbody tr:hover { background: transparent; }
+  td input:hover { background: transparent; }
+  .nav-btn:hover { background: transparent; }
+  .name-field:hover { background: transparent; }
+  .filter-chip:hover:not([aria-pressed="true"]) { background: transparent; }
+  .add-entry-btn:hover { background: transparent; }
+  .export-list button:hover { background: transparent; }
+  .row-del:hover { color: var(--ink-dim); background: transparent; }
 }

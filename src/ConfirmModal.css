@@ -55,6 +55,21 @@
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.1s;
+  min-height: 2.75rem;
+}
+
+@media (max-width: 720px) {
+  .modal-overlay {
+    padding: 1rem;
+    /* keep the dialog clear of the home indicator on notched phones */
+    padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+  .modal-content { width: 100%; padding: 1.25rem; }
+}
+
+@media (hover: none) {
+  .modal-btn.cancel:hover { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+  .modal-btn.confirm:hover { background: var(--bad); }
 }
 
 .modal-btn.cancel {

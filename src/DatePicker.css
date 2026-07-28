@@ -90,6 +90,32 @@
   opacity: 0.4 !important;
 }
 
+/* The calendar plus a time column is wider than a small phone. Scale it down
+   and let it scroll rather than spilling off-screen. */
+@media (max-width: 420px) {
+  .react-datepicker {
+    font-size: 0.8rem !important;
+    max-width: calc(100vw - 1.5rem);
+    display: flex !important;
+  }
+  .react-datepicker__month-container { min-width: 0; }
+  .react-datepicker__day,
+  .react-datepicker__day-name {
+    width: 1.6rem !important;
+    line-height: 1.6rem !important;
+    margin: 0.1rem !important;
+  }
+  .react-datepicker__time-container,
+  .react-datepicker__time-container .react-datepicker__time-box {
+    width: 4.75rem !important;
+  }
+  /* a comfortable tap height for the time rows */
+  .react-datepicker__time-list-item {
+    height: auto !important;
+    padding: 0.6rem 0.3rem !important;
+  }
+}
+
 .react-datepicker__navigation:hover *::before {
   border-color: var(--ink) !important;
 }

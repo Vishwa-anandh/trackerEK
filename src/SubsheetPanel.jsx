@@ -98,7 +98,7 @@ export default function SubsheetPanel({ sheet, isEditor, onUpdateSheet }) {
   return (
     <div className="cs-active-sheet">
       <div className="cs-header scoreboard">
-        <div className="title-block" style={{ flex: 1, paddingRight: '1rem' }}>
+        <div className="title-block cs-title-col">
           <input
             type="text"
             className="cs-title-input"

@@ -9,6 +9,11 @@
   margin-bottom: 1.5rem;
 }
 
+.cs-title-col {
+  min-width: 0;
+  padding-right: 1rem;
+}
+
 .cs-title-input {
   font-family: var(--display);
   font-size: 2rem;
@@ -64,6 +69,18 @@
   background: color-mix(in srgb, var(--ink) 8%, transparent);
   padding: 0.2rem;
   border-radius: 8px;
+  /* Shrink and scroll internally instead of pushing the nav wider than the
+     viewport. Without min-width the flex item refuses to go below its content. */
+  flex: 0 1 auto;
+  min-width: 0;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.cs-tabs-header::-webkit-scrollbar { height: 4px; }
+.cs-tabs-header::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 999px;
 }
 
 .cs-tab-group {
@@ -71,6 +88,8 @@
   align-items: center;
   border-radius: 6px;
   background: transparent;
+  /* keep full width and let the strip scroll, rather than squeezing titles */
+  flex: 0 0 auto;
   transition: background-color 0.15s, box-shadow 0.15s;
 }
 .cs-tab-group.active {
@@ -107,6 +126,7 @@
   font-size: 0.85rem;
   font-weight: 500;
   color: var(--ink);
+  white-space: nowrap;
 }
 .cs-tab-group.active .cs-tab {
   font-weight: 600;
@@ -158,14 +178,16 @@
   padding: 0.5rem 1rem;
   border-radius: 6px;
   font-weight: 600;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .cs-table-container {
-  overflow-x: auto;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
-  overflow: hidden;
+  /* the table has a 900px minimum — scroll it rather than clipping the columns */
+  overflow-x: auto;
 }
 
 .cs-table {
@@ -358,4 +380,69 @@
 }
 .ql-snow .ql-picker {
   color: var(--ink) !important;
+}
+
+/* Tablets sit in the card layout too, so the field should not trigger zoom. */
+@media (max-width: 900px) {
+  .cs-end-date input { font-size: 16px; }
+}
+
+@media (pointer: coarse) {
+  .cs-tab { padding: 0.6rem 0.5rem 0.6rem 0.85rem; }
+  .cs-del-sheet { padding: 0.55rem 0.6rem 0.55rem 0.25rem; }
+  .cs-add-sheet { padding: 0.55rem 0.95rem; }
+  .cs-end-date input { font-size: 16px; min-height: 2.6rem; }
+  .cs-end-date input:disabled { min-height: 0; }
+}
+
+/* ---------- responsive: phones ---------- */
+@media (max-width: 720px) {
+  .custom-sheets-wrap {
+    padding: 1.5rem max(1rem, env(safe-area-inset-right)) 3rem max(1rem, env(safe-area-inset-left));
+  }
+  .cs-header { margin-bottom: 1.1rem; }
+  /* the desktop layout reserves room for the grand total beside the title */
+  .cs-title-col { padding-right: 0; }
+  .cs-title-input { font-size: 1.55rem; }
+  .cs-desc-quill { margin-bottom: 1.1rem; }
+  .cs-desc-quill:has(+ .cs-end-date) { margin-bottom: 0.8rem; }
+
+  /* Tabs take a full-width row of their own and swipe horizontally. */
+  .cs-tabs-header {
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    border-radius: 10px;
+  }
+  .cs-tab {
+    padding: 0.6rem 0.5rem 0.6rem 0.85rem;
+    font-size: 0.9rem;
+  }
+  .cs-del-sheet {
+    padding: 0.55rem 0.6rem 0.55rem 0.25rem;
+    font-size: 1.2rem;
+  }
+  .cs-add-sheet { padding: 0.55rem 0.9rem; font-size: 0.85rem; }
+
+  /* Label above the field so a long date/time never overflows a narrow screen. */
+  .cs-end-date {
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    margin-bottom: 0.4rem;
+  }
+  .cs-end-date-label { flex: 1 1 100%; }
+  .cs-end-date .react-datepicker-wrapper,
+  .cs-end-date .react-datepicker__input-container { width: 100%; }
+  .cs-end-date input {
+    width: 100%;
+    font-size: 16px;
+    min-height: 2.75rem;
+  }
+  .cs-end-date input:disabled { min-height: 0; }
+}
+
+@media (hover: none) {
+  .cs-title-input:hover,
+  .cs-desc-input:hover,
+  .cs-end-date input:hover:not(:disabled) { background: transparent; }
 }

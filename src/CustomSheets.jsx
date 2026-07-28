@@ -109,7 +109,7 @@ export default function CustomSheets({ data, setData, isEditor, currentView, set
   return (
     <>
       <nav className="top-nav">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
+        <div className="nav-brand">
           <img src="/logoek.png" alt="Sithira Madam — Live Your Own Palace" className="brand-logo-small" />
           <button
             className={'nav-btn ' + (currentView === 'home' ? 'active' : '')}
