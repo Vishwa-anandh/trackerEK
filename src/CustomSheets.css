@@ -112,6 +112,8 @@
   font-weight: 600;
 }
 
+/* Hidden until the tab is hovered. It keeps its slot in the layout so
+   revealing it never shifts the tab strip. */
 .cs-del-sheet {
   background: transparent;
   border: none;
@@ -120,14 +122,32 @@
   font-size: 1.1rem;
   line-height: 1;
   padding: 0.2rem 0.5rem 0.2rem 0.2rem;
-  opacity: 0.6;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease, color 0.15s ease;
 }
-.cs-del-sheet:hover {
+.cs-tab-group:hover .cs-del-sheet,
+.cs-del-sheet:focus-visible {
+  opacity: 0.6;
+  pointer-events: auto;
+}
+.cs-tab-group .cs-del-sheet:hover,
+.cs-del-sheet:focus-visible {
   opacity: 1;
   color: var(--bad);
 }
 .cs-tab-group.active .cs-del-sheet {
   color: var(--ink);
+}
+.cs-tab-group.active .cs-del-sheet:hover {
+  color: var(--bad);
+}
+/* Touch devices never hover — keep it reachable there. */
+@media (hover: none) {
+  .cs-del-sheet {
+    opacity: 0.6;
+    pointer-events: auto;
+  }
 }
 
 .cs-add-sheet {
